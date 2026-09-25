@@ -1,12 +1,13 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serve } from '@hono/node-server';
-import { serveStatic } from '@hono/node-server/serve-static';
-import { existsSync, readFileSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
+import { getConnInfo } from '@hono/node-server/conninfo';
+import { networkInterfaces } from 'node:os';
+import { resolve } from 'node:path';
 import { BRAND, DEMO, formatPrice } from '@taptym/shared';
-import { all, API_ROOT, get, run, nowIso, UPLOAD_DIR } from './db.ts';
+import { all, API_ROOT, DB_PATH, get, run, nowIso, UPLOAD_DIR } from './db.ts';
 import { seedDemo } from './seed.ts';
+import { serveDir } from './static.ts';
 import { customer } from './routes/customer.ts';
 import { supplier } from './routes/supplier.ts';
 import { admin } from './routes/admin.ts';
@@ -129,30 +130,28 @@ app.all('/api/*', (c) => c.json({ error: 'not_found' }, 404));
 
 // ---------- static: uploads and the three web apps ----------
 
-const uploadsRoot = relative(process.cwd(), UPLOAD_DIR) || '.';
-app.use('/uploads/*', serveStatic({ root: uploadsRoot, rewriteRequestPath: (p) => p.replace(/^\/uploads/, '') }));
-
 const APPS_ROOT = resolve(API_ROOT, '..');
-function spa(prefix: string, dir: string) {
-  const abs = resolve(APPS_ROOT, dir);
-  const root = relative(process.cwd(), abs) || '.';
-  const index = resolve(abs, 'index.html');
-  const handler = serveStatic({ root, rewriteRequestPath: (p) => (prefix === '/' ? p : p.slice(prefix.length) || '/') });
-  const pattern = prefix === '/' ? '*' : `${prefix}/*`;
-  app.use(pattern, handler);
-  if (prefix !== '/') app.use(prefix, handler);
-  app.get(pattern, (c) => {
-    if (!existsSync(index)) return c.html(notBuilt(dir), 503);
-    return c.html(readFileSync(index, 'utf8'));
-  });
+const ADMIN_DIST = resolve(APPS_ROOT, 'admin/dist');
+const SUPPLIER_DIST = resolve(APPS_ROOT, 'supplier/dist');
+const CUSTOMER_DIST = resolve(APPS_ROOT, 'customer/dist');
+
+app.get('/uploads/*', (c) => serveDir(c, UPLOAD_DIR, '/uploads', { spa: false, immutable: true }));
+
+function isLocalRequest(c: Parameters<typeof getConnInfo>[0]) {
+  try {
+    const addr = getConnInfo(c).remote.address ?? '';
+    return addr === '127.0.0.1' || addr === '::1' || addr === '::ffff:127.0.0.1';
+  } catch {
+    return false;
+  }
 }
 
-function notBuilt(dir: string) {
-  return `<!doctype html><meta charset="utf-8"><body style="font-family:system-ui;padding:40px"><h2>Приложение ещё не собрано</h2><p>Выполните <code>pnpm build:web</code> (${dir}).</p></body>`;
-}
-
-app.get('/demo', (c) =>
-  c.html(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${BRAND.name} — демо</title>
+app.get('/demo', (c) => {
+  // Admin credentials are shown only on the server computer itself, not to other devices in the network.
+  const adminCred = isLocalRequest(c)
+    ? `Email: <b>${DEMO.adminEmail}</b><br>Пароль: <b>${DEMO.adminPassword}</b>`
+    : 'Доступ выдаёт владелец';
+  return c.html(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${BRAND.name} — демо</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,sans-serif;background:#F5F6FA;color:#0F1222}
 .wrap{max-width:1040px;margin:0 auto;padding:48px 20px}.logo{font-weight:900;font-size:40px;letter-spacing:-1px}.logo span{color:${BRAND.primary}}
@@ -169,15 +168,31 @@ a.card:hover{transform:translateY(-4px)}.emoji{font-size:44px}.t{font-size:22px;
 <a class="card" href="/supplier/"><div class="emoji">🏪</div><div class="t">Кабинет поставщика</div><div class="d">Заказы, товары по фото и из Excel, финансы и выплаты, промокоды, сотрудники, отчёты.</div>
 <div class="cred">Телефон: <b>${DEMO.supplierPhone}</b><br>Код из SMS: <b>${DEMO.smsCode}</b></div></a>
 <a class="card" href="/admin/"><div class="emoji">🛡️</div><div class="t">Админ-панель</div><div class="d">Модерация, баннеры и реклама, выплаты с расчётом, промокоды, настройки комиссии, интеграции.</div>
-<div class="cred">Email: <b>${DEMO.adminEmail}</b><br>Пароль: <b>${DEMO.adminPassword}</b></div></a>
-</div><div class="note">Все платежи, SMS и доставки работают в демо-режиме, пока в админке не указаны ключи API.</div></div></body></html>`),
-);
+<div class="cred">${adminCred}</div></a>
+</div><div class="note">Все платежи, SMS и доставки работают в демо-режиме, пока в админке не указаны ключи API.</div></div></body></html>`);
+});
 
-spa('/admin', 'admin/dist');
-spa('/supplier', 'supplier/dist');
-spa('/', 'customer/dist');
+app.get('/admin', (c) => c.redirect('/admin/'));
+app.get('/admin/*', (c) => serveDir(c, ADMIN_DIST, '/admin', { spa: true }));
+app.get('/supplier', (c) => c.redirect('/supplier/'));
+app.get('/supplier/*', (c) => serveDir(c, SUPPLIER_DIST, '/supplier', { spa: true }));
+app.get('*', (c) => serveDir(c, CUSTOMER_DIST, '', { spa: true }));
+
+function lanUrls(port: number) {
+  return Object.values(networkInterfaces())
+    .flat()
+    .filter((i) => i && i.family === 'IPv4' && !i.internal)
+    .map((i) => `http://${i!.address}:${port}`);
+}
 
 const port = Number(process.env.PORT ?? 3000);
 serve({ fetch: app.fetch, port, hostname: '0.0.0.0' }, (info) => {
-  console.log(`${BRAND.name} API + web on http://localhost:${info.port}  (demo hub: /demo)`);
+  const lan = lanUrls(info.port);
+  console.log(`\n  ${BRAND.name} — сервер запущен\n`);
+  console.log(`  На этом компьютере:      http://localhost:${info.port}/demo`);
+  console.log(`  Админ-панель:            http://localhost:${info.port}/admin/`);
+  for (const u of lan) console.log(`  С телефона (та же сеть): ${u}   ·   поставщик: ${u}/supplier/`);
+  console.log(`\n  База данных: ${DB_PATH}`);
+  console.log(`  Фото и файлы: ${UPLOAD_DIR}`);
+  console.log(`\n  Не закрывайте это окно — пока оно открыто, сервер работает.\n`);
 });

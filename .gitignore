@@ -11,3 +11,7 @@ apps/api/uploads/
 .hoplite/artifacts/
 .hoplite/attachments/
 .hoplite/runtime/
+apps/*/android/
+apps/*/ios/
+apk/
+*.apk

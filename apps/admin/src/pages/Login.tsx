@@ -10,6 +10,9 @@ const DEMO_USERS = [
   { email: 'accountant@taptym.kg', password: 'account123', role: 'Бухгалтер' },
 ];
 
+// Demo passwords are hinted only on the server computer itself, not to other devices in the network.
+const SHOW_DEMO_USERS = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+
 export function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -74,6 +77,7 @@ export function Login() {
           <button className="btn btn-primary btn-lg" type="submit" disabled={busy} data-testid="login-submit">
             {busy ? 'Входим…' : 'Войти'} <ArrowRight size={18} />
           </button>
+          {SHOW_DEMO_USERS && (
           <div className="demo-creds">
             <b>Демо-доступы — нажмите, чтобы подставить</b>
             {DEMO_USERS.map((u) => (
@@ -92,6 +96,7 @@ export function Login() {
               </button>
             ))}
           </div>
+          )}
         </form>
       </section>
     </div>
