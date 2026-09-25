@@ -17,7 +17,7 @@ if errorlevel 1 set "PNPM=corepack pnpm"
 
 if not exist "node_modules\tsx\package.json" (
   echo [Taptym] Installing dependencies, the first run takes a few minutes...
-  call %PNPM% install
+  call %PNPM% install --frozen-lockfile
   if errorlevel 1 goto :fail
 )
 

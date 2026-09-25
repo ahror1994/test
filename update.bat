@@ -8,9 +8,11 @@ where pnpm >nul 2>nul
 if errorlevel 1 set "PNPM=corepack pnpm"
 
 echo [Taptym] Downloading the latest code...
+rem The lockfile is generated; drop local churn so git pull never conflicts on it.
+git checkout -- pnpm-lock.yaml
 git pull
 if errorlevel 1 goto :fail
-call %PNPM% install
+call %PNPM% install --frozen-lockfile
 if errorlevel 1 goto :fail
 call %PNPM% build:web
 if errorlevel 1 goto :fail
