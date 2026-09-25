@@ -1,42 +1,57 @@
 {
   "expo": {
-    "name": "supplier",
-    "slug": "supplier",
+    "name": "Taptym Бизнес",
+    "slug": "taptym-business",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
-    "scheme": "supplier",
-    "userInterfaceStyle": "automatic",
+    "scheme": "taptym-business",
+    "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "kg.taptym.business",
+      "supportsTablet": true
     },
     "android": {
+      "package": "kg.taptym.business",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#5B3CF5",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "single",
+      "favicon": "./assets/images/favicon.png",
+      "name": "Taptym Бизнес",
+      "shortName": "Taptym Бизнес",
+      "themeColor": "#5B3CF5",
+      "backgroundColor": "#F4F5F9"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#5B3CF5",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 96
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Разрешите доступ к фото, чтобы добавить снимки товаров.",
+          "cameraPermission": "Разрешите доступ к камере, чтобы фотографировать товары."
+        }
+      ],
+      "expo-document-picker"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": false,
+      "reactCompiler": true,
+      "baseUrl": "/supplier"
     }
   }
 }

@@ -1,18 +1,20 @@
 {
   "expo": {
-    "name": "customer",
-    "slug": "customer",
+    "name": "Taptym",
+    "slug": "taptym",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "customer",
-    "userInterfaceStyle": "automatic",
+    "scheme": "taptym",
+    "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "kg.taptym.app",
+      "supportsTablet": true
     },
     "android": {
+      "package": "kg.taptym.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#5B3CF5",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -20,22 +22,37 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "single",
+      "favicon": "./assets/images/favicon.png",
+      "name": "Taptym — канцтовары Оша",
+      "shortName": "Taptym",
+      "themeColor": "#5B3CF5",
+      "backgroundColor": "#F6F7FB"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#5B3CF5",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 96
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Taptym использует фото для отзывов о товарах."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Taptym использует геолокацию, чтобы привезти заказ по вашему адресу."
         }
       ]
     ],
     "experiments": {
-      "typedRoutes": true,
       "reactCompiler": true
     }
   }

@@ -168,7 +168,7 @@ supplier.get('/me', (c) => {
          WHERE so.supplier_id = ? AND so.status = 'new' AND o.payment_status IN ${VISIBLE_PAYMENT}`,
         c.get('supplierId'),
       )?.n ?? 0,
-    permissions: ['orders', 'products', 'finance', 'finance_view', 'staff', 'promos', 'settings', 'reports', 'support'].filter((s) =>
+    permissions: ['orders', 'orders_view', 'products', 'finance', 'finance_view', 'staff', 'promos', 'settings', 'reports', 'support'].filter((s) =>
       supplierCan(role, s),
     ),
   });
@@ -307,7 +307,7 @@ supplier.get('/orders', (c) => {
 supplier.get('/orders/:id', (c) => {
   const so = get<any>('SELECT * FROM sub_orders WHERE id = ? AND supplier_id = ?', Number(c.req.param('id')), c.get('supplierId'));
   if (!so) throw new ApiError(404, 'order_not_found');
-  return c.json({ ...subOrderRow(so, true), next: allowedNext(so.status) });
+  return c.json({ ...subOrderRow(so, true), next: allowedNext(so.status), supplierDiscount: so.supplier_funded_discount ?? 0 });
 });
 
 supplier.post('/orders/:id/status', async (c) => {
@@ -319,7 +319,7 @@ supplier.post('/orders/:id/status', async (c) => {
   const staff = get<any>('SELECT name FROM supplier_staff WHERE id = ?', c.get('staffId'));
   await changeSubOrderStatus(so.id, b.status, `Поставщик (${staff?.name ?? ''})`, false, b.reason ?? '');
   const fresh = get<any>('SELECT * FROM sub_orders WHERE id = ?', so.id);
-  return c.json({ ...subOrderRow(fresh, true), next: allowedNext(fresh.status) });
+  return c.json({ ...subOrderRow(fresh, true), next: allowedNext(fresh.status), supplierDiscount: fresh.supplier_funded_discount ?? 0 });
 });
 
 // ---------- products ----------
@@ -496,7 +496,16 @@ interface ImportRow {
 }
 
 function parseSheet(path: string): ImportRow[] {
-  const wb = XLSX.read(readFileSync(path), { type: 'buffer', codepage: 65001 });
+  const buf = readFileSync(path);
+  let wb: XLSX.WorkBook;
+  if (/\.(csv|txt)$/i.test(path)) {
+    // SheetJS mis-decodes UTF-8 CSV buffers; decode ourselves (Excel on Windows saves CSV as cp1251).
+    let text = new TextDecoder('utf-8').decode(buf);
+    if (text.includes('\ufffd')) text = new TextDecoder('windows-1251').decode(buf);
+    wb = XLSX.read(text.replace(/^\ufeff/, ''), { type: 'string' });
+  } else {
+    wb = XLSX.read(buf, { type: 'buffer', codepage: 65001 });
+  }
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
   const pick = (r: Record<string, any>, ...names: string[]) => {
