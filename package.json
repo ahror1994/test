@@ -1,0 +1,13 @@
+{
+  "name": "taptym",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.26.0",
+  "scripts": {
+    "build:web": "pnpm --filter admin build && pnpm --filter customer export:web && pnpm --filter supplier export:web",
+    "start": "pnpm --filter api start",
+    "demo": "pnpm build:web && pnpm start",
+    "reset-db": "pnpm --filter api reset-db",
+    "typecheck": "pnpm -r --parallel typecheck"
+  }
+}
