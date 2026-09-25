@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "Taptym Бизнес",
+    "slug": "taptym-business",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/images/icon.png",
+    "scheme": "taptym-business",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "kg.taptym.business",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "kg.taptym.business",
+      "adaptiveIcon": {
+        "backgroundColor": "#5B3CF5",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize",
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/favicon.png",
+      "name": "Taptym Бизнес",
+      "shortName": "Taptym Бизнес",
+      "themeColor": "#5B3CF5",
+      "backgroundColor": "#F4F5F9"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#5B3CF5",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 96
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Разрешите доступ к фото, чтобы добавить снимки товаров.",
+          "cameraPermission": "Разрешите доступ к камере, чтобы фотографировать товары.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-document-picker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false,
+      "reactCompiler": true,
+      "baseUrl": "/supplier"
+    }
+  }
+}

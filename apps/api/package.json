@@ -1,0 +1,27 @@
+{
+  "name": "api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "reset-db": "tsx src/reset.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.0",
+    "@taptym/shared": "workspace:*",
+    "hono": "^4.13.9",
+    "qrcode": "^1.5.4",
+    "tsx": "^4.20.0",
+    "xlsx": "0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/qrcode": "^1.5.5",
+    "typescript": "~5.9.3",
+    "tsx": "^4.20.0"
+  }
+}

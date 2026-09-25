@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.expo/
+web-build/
+*.log
+.DS_Store
+apps/api/data/
+apps/api/uploads/
+.env
+.env.local
+.hoplite/artifacts/
+.hoplite/attachments/
+.hoplite/runtime/
+apps/*/android/
+apps/*/ios/
+apk/
+*.apk
