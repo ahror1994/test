@@ -1,9 +1,10 @@
-import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ComponentProps, type ReactNode, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -250,8 +251,9 @@ export function Chip({ label, active, onPress, icon, count, emoji, tone }: { lab
 }
 
 export function Segmented<K extends string>({ items, value, onChange }: { items: { key: K; label: string; count?: number; icon?: IconName }[]; value: K; onChange: (k: K) => void }) {
+  // Scrolls sideways on narrow phones instead of truncating labels to "Нов…".
   return (
-    <View style={ui.seg}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={ui.segWrap} contentContainerStyle={ui.seg}>
       {items.map((it) => {
         const on = it.key === value;
         return (
@@ -277,7 +279,7 @@ export function Segmented<K extends string>({ items, value, onChange }: { items:
           </Pressable>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -463,7 +465,7 @@ export function ListRow({ icon, iconColor = C.primary, iconBg = C.primarySoft, e
 // ---------- states ----------
 
 export function Skeleton({ h = 18, w = '100%', r = 10, style }: { h?: number; w?: number | `${number}%`; r?: number; style?: StyleProp<ViewStyle> }) {
-  const a = useRef(new Animated.Value(0.5)).current;
+  const [a] = useState(() => new Animated.Value(0.5));
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
@@ -536,10 +538,10 @@ export function Stat({ label, value, icon, tone = C.primary, hint, onPress }: { 
   return (
     <Card onPress={onPress} style={{ gap: 10, minHeight: 118 }}>
       <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <Txt v="capB" style={{ flex: 1 }} numberOfLines={2}>
+        <Txt v="capB" style={{ flex: 1, minWidth: 0 }} numberOfLines={2}>
           {label}
         </Txt>
-        <View style={[ui.iconTileSm, { backgroundColor: tone + '1A' }]}>
+        <View style={[ui.iconTileSm, { backgroundColor: tone + '1A', flexShrink: 0 }]}>
           <Ionicons name={icon} size={16} color={tone} />
         </View>
       </Row>
@@ -565,10 +567,11 @@ export const ui = StyleSheet.create({
   chipText: { fontSize: 14, fontWeight: '700', color: C.ink2, fontFamily: FONT },
   chipCount: { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
   chipCountText: { fontSize: 12, fontWeight: '800', color: C.ink2 },
-  seg: { flexDirection: 'row', backgroundColor: '#E9EAF1', borderRadius: 18, padding: 4, gap: 4 },
-  segItem: { flexGrow: 1, flexShrink: 1, flexBasis: 'auto', height: 44, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 8 },
+  segWrap: { flexGrow: 0, backgroundColor: '#E9EAF1', borderRadius: 18 },
+  seg: { flexGrow: 1, flexDirection: 'row', padding: 4, gap: 4 },
+  segItem: { flexGrow: 1, flexShrink: 0, flexBasis: 'auto', height: 44, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 12 },
   segOn: { backgroundColor: C.card, ...shadow.soft },
-  segText: { fontSize: 13.5, fontWeight: '700', color: C.muted, fontFamily: FONT, flexShrink: 1 },
+  segText: { fontSize: 13.5, fontWeight: '700', color: C.muted, fontFamily: FONT },
   segCount: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: '#DADCE6', alignItems: 'center', justifyContent: 'center' },
   segCountText: { fontSize: 11, fontWeight: '800', color: C.ink2 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 24, paddingHorizontal: 10, borderRadius: R.pill, alignSelf: 'flex-start' },

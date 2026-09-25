@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { BRAND } from '@taptym/shared';
 import { Screen } from '@/components/Screen';
@@ -32,8 +32,12 @@ export default function Settings() {
     payoutDetails: me?.payoutDetails ?? '',
   });
   const [f, setF] = useState(init);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => setF(init()), [me?.id]);
+  // Profile arrives after the first render (or the store switches): load it into the form once per store.
+  const [formFor, setFormFor] = useState(me?.id);
+  if (me?.id !== formFor) {
+    setFormFor(me?.id);
+    setF(init());
+  }
 
   const save = async () => {
     if (!f.name.trim()) return toast(t('err_name_address'), 'error');

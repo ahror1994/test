@@ -69,7 +69,7 @@ export function TabBar({ state }: BottomTabBarProps) {
         style={({ hovered }: any) => [s.side, on && { backgroundColor: C.primarySoft }, hovered && !on && { backgroundColor: C.bg }]}
       >
         <Ionicons name={on ? x.iconOn : x.icon} size={20} color={on ? C.primary : C.ink2} />
-        <Text numberOfLines={1} style={[s.sideLabel, on && { color: C.primary }]}>
+        <Text numberOfLines={2} style={[s.sideLabel, on && { color: C.primary }]}>
           {t(x.label)}
         </Text>
         {b ? (
@@ -136,8 +136,8 @@ const s = StyleSheet.create({
   logoMark: { width: 38, height: 38, borderRadius: 12, backgroundColor: BRAND.primary, alignItems: 'center', justifyContent: 'center' },
   logoText: { fontSize: 20, fontWeight: '900', color: C.ink, letterSpacing: -0.5, fontFamily: FONT },
   logoSub: { fontSize: 12, fontWeight: '600', color: C.muted, fontFamily: FONT },
-  side: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 46, paddingHorizontal: 12, borderRadius: 14 },
-  sideLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: C.ink2, fontFamily: FONT },
+  side: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 46, paddingVertical: 5, paddingHorizontal: 12, borderRadius: 14 },
+  sideLabel: { flex: 1, fontSize: 15, lineHeight: 19, fontWeight: '700', color: C.ink2, fontFamily: FONT },
   group: { fontSize: 11, fontWeight: '800', color: C.faint, letterSpacing: 0.8, textTransform: 'uppercase', paddingHorizontal: 12, paddingTop: 18, paddingBottom: 6, fontFamily: FONT },
   store: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 18, borderWidth: 1, borderColor: C.line },
   storeLogo: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { BRAND, formatDate, formatPrice, type PromoCode, type PromoType } from '@taptym/shared';
 import { Screen } from '@/components/Screen';
+import { LoadError } from '@/components/LoadError';
 import { Sheet } from '@/components/Sheet';
-import { Button, Card, Chip, digits, Divider, Empty, ErrorBox, Field, Notice, Pill, Row, SkeletonList, Txt } from '@/components/ui';
+import { Button, Card, Chip, digits, Divider, Empty, Field, Notice, Pill, Row, SkeletonList, Txt } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { C } from '@/lib/theme';
@@ -61,8 +62,8 @@ export default function Promos() {
       footer={<Button title={t('promo_new')} icon="add-circle-outline" onPress={() => setOpen(true)} testID="promo-new" />}
     >
       <Notice icon="shield-checkmark-outline" text={t('promo_approval')} />
-      {error && !data ? <ErrorBox text={errorText(t, error)} onRetry={reload} retry={t('retry')} /> : null}
-      {loading ? (
+      <LoadError error={error} onRetry={reload} compact={!!data} />
+      {!data && error ? null : loading ? (
         <SkeletonList n={3} />
       ) : (
         <Card pad={8}>

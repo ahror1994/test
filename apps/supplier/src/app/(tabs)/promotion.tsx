@@ -2,7 +2,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { formatDate, formatPrice } from '@taptym/shared';
 import { Screen } from '@/components/Screen';
-import { Button, Card, Empty, ErrorBox, Grid, Pill, Row, Section, SkeletonList, Txt } from '@/components/ui';
+import { LoadError } from '@/components/LoadError';
+import { Button, Card, Empty, Grid, Pill, Row, Section, SkeletonList, Txt } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { C } from '@/lib/theme';
@@ -42,8 +43,8 @@ export default function Promotion() {
 
   return (
     <Screen back="/more" detail title={t('m_promotion')} subtitle={t('promotion_sub')} refreshing={refreshing} onRefresh={refresh}>
-      {error && !data ? <ErrorBox text={errorText(t, error)} onRetry={reload} retry={t('retry')} /> : null}
-      {loading || !data ? (
+      <LoadError error={error} onRetry={reload} compact={!!data} />
+      {!data && error ? null : loading || !data ? (
         <SkeletonList n={4} h={150} />
       ) : (
         <>
@@ -79,7 +80,7 @@ export default function Promotion() {
           </Grid>
           <Section title={t('my_services')} icon="albums-outline">
             <Card pad={8}>
-              {data.mine.length === 0 ? <Empty emoji="📣" title={t('no_services')} text={t('no_services_sub')} /> : null}
+              {data.mine.length === 0 ? <Empty emoji="📣" title={t('no_services')} text={t(data.catalog.some((x) => x.free) ? 'no_services_sub' : 'no_services_sub_paid')} /> : null}
               {data.mine.map((m) => (
                 <Row key={m.id} gap={12} style={{ padding: 12 }}>
                   <Text style={{ fontSize: 24 }}>{EMOJI[m.type] ?? '✨'}</Text>

@@ -1,3 +1,4 @@
+import { setPriceLocale } from '@taptym/shared';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -116,3 +117,7 @@ export const useToast = create<{
 }));
 
 export const toast = (text: string, kind?: Toast['kind']) => useToast.getState().show(text, kind);
+
+// Keep shared price formatting in the interface language.
+setPriceLocale(useApp.getState().lang);
+useApp.subscribe((st) => setPriceLocale(st.lang));

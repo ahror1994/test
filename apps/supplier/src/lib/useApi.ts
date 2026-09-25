@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { api, ApiError } from './api';
 
@@ -6,15 +6,17 @@ import { api, ApiError } from './api';
 export function useApi<T>(path: string | null, opts: { interval?: number } = {}) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
-  const [loading, setLoading] = useState(!!path);
+  // The path whose first request has settled; loading is derived from it instead of toggled in an effect.
+  const [settled, setSettled] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const pathRef = useRef(path);
-  pathRef.current = path;
+  useLayoutEffect(() => {
+    pathRef.current = path;
+  }, [path]);
 
-  const load = useCallback(async (mode: 'initial' | 'silent' | 'pull' = 'silent') => {
+  const load = useCallback(async () => {
     const p = pathRef.current;
     if (!p) return;
-    if (mode === 'pull') setRefreshing(true);
     try {
       const d = await api<T>(p);
       if (pathRef.current === p) {
@@ -24,25 +26,35 @@ export function useApi<T>(path: string | null, opts: { interval?: number } = {})
     } catch (e) {
       if (pathRef.current === p) setError(e instanceof ApiError ? e : new ApiError('network', 0));
     } finally {
-      if (pathRef.current === p) setLoading(false);
+      if (pathRef.current === p) setSettled(p);
       setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    if (!path) return;
-    setLoading(true);
-    void load('initial');
+    if (path) void load();
   }, [path, load]);
 
   useFocusEffect(
     useCallback(() => {
-      void load('silent');
+      void load();
       if (!opts.interval) return;
-      const id = setInterval(() => void load('silent'), opts.interval);
+      const id = setInterval(() => void load(), opts.interval);
       return () => clearInterval(id);
     }, [load, opts.interval]),
   );
 
-  return { data, setData, error, loading: loading && !data, refreshing, reload: () => load('silent'), refresh: () => load('pull') };
+  const loading = !!path && settled !== path && !data;
+  return {
+    data,
+    setData,
+    error,
+    loading,
+    refreshing,
+    reload: load,
+    refresh: () => {
+      setRefreshing(true);
+      return load();
+    },
+  };
 }

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatPrice, type SupplierDashboard } from '@taptym/shared';
 import { Screen } from '@/components/Screen';
-import { Button, Card, ErrorBox, Grid, IconBtn, Money, Row, Section, Skeleton, Stat, Txt } from '@/components/ui';
+import { LoadError } from '@/components/LoadError';
+import { Button, Card, Grid, IconBtn, Money, Row, Section, Skeleton, Stat, Txt } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { useCan, useStore } from '@/lib/store';
@@ -21,6 +22,14 @@ export default function Dashboard() {
   const { data, error, loading, refreshing, refresh, reload, setData } = useApi<SupplierDashboard>('/api/s/dashboard');
   const [busy, setBusy] = useState<string | null>(null);
   const money = can('finance') || can('finance_view');
+
+  // The tab layout polls /me; refresh the "new orders" card as soon as that count moves.
+  const newOrders = me?.newOrders;
+  const prevNew = useRef(newOrders);
+  useEffect(() => {
+    if (prevNew.current !== undefined && newOrders !== prevNew.current) void reload();
+    prevNew.current = newOrders;
+  }, [newOrders, reload]);
   const products = can('products');
 
   const patch = async (key: string, offerId: number, body: object, msg: string) => {
@@ -40,9 +49,9 @@ export default function Dashboard() {
   const right = <IconBtn icon="notifications-outline" label={t('m_notifications')} badge={me?.unread} onPress={() => router.navigate('/notifications')} />;
 
   return (
-    <Screen title={t('hello', { name: me?.staffName ?? '' })} subtitle={me?.name} right={right} refreshing={refreshing} onRefresh={refresh}>
-      {error && !d ? <ErrorBox text={errorText(t, error)} onRetry={reload} retry={t('retry')} /> : null}
-      {loading || !d ? (
+    <Screen title={me?.staffName ? t('hello', { name: me.staffName }) : t('tab_home')} subtitle={me?.name} right={right} refreshing={refreshing} onRefresh={refresh}>
+      <LoadError error={error} onRetry={reload} compact={!!d} />
+      {!d && error ? null : loading || !d ? (
         <View style={{ gap: 14 }}>
           <Skeleton h={120} r={24} />
           <Grid cols={Math.max(2, cols)}>
@@ -71,7 +80,7 @@ export default function Dashboard() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[s.ctaTitle, !d.today.newOrders && { color: C.ink }]}>{d.today.newOrders ? t('new_orders_cta', { n: d.today.newOrders }) : t('no_new_orders')}</Text>
-                <Text style={[s.ctaSub, !d.today.newOrders && { color: C.muted }]}>{d.today.newOrders ? t('new_orders_cta_sub') : t('no_new_orders_sub')}</Text>
+                <Text style={[s.ctaSub, !d.today.newOrders && { color: C.muted }]}>{d.today.newOrders ? (can('orders') ? t('new_orders_cta_sub') : t('view_only')) : t('no_new_orders_sub')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={22} color={d.today.newOrders ? '#fff' : C.faint} />
             </Pressable>

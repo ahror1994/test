@@ -19,7 +19,11 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "single",
@@ -43,10 +47,19 @@
         "expo-image-picker",
         {
           "photosPermission": "Разрешите доступ к фото, чтобы добавить снимки товаров.",
-          "cameraPermission": "Разрешите доступ к камере, чтобы фотографировать товары."
+          "cameraPermission": "Разрешите доступ к камере, чтобы фотографировать товары.",
+          "microphonePermission": false
         }
       ],
-      "expo-document-picker"
+      "expo-document-picker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false,

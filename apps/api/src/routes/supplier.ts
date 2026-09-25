@@ -4,7 +4,9 @@ import { readFileSync } from 'node:fs';
 import {
   CATEGORIES,
   DEMO,
+  indexDoc,
   normalizePhone,
+  searchDocs,
   type SubOrderStatus,
   type SupplierDashboard,
   type SupplierProduct,
@@ -377,13 +379,21 @@ supplier.get('/catalog/match', (c) => {
     return c.json(p ? [{ ...p, images: json(p.images, []) }] : []);
   }
   if (q.length < 2) return c.json([]);
+  // Same multilingual, typo-tolerant matching as the storefront (SQLite LIKE is case-sensitive for Cyrillic).
   const rows = all<any>(
-    `SELECT id, title, emoji, color, category_id, images, brand,
+    `SELECT id, title, emoji, color, category_id, images, brand, keywords,
       (SELECT MIN(price) FROM offers WHERE product_id = products.id AND active = 1) AS min_price
-     FROM products WHERE hidden = 0 AND title LIKE ? LIMIT 8`,
-    `%${q}%`,
+     FROM products WHERE hidden = 0`,
   );
-  return c.json(rows.map((r) => ({ ...r, images: json(r.images, []) })));
+  const docs = rows.map((r) => indexDoc({ id: r.id, title: r.title, extra: [r.brand, r.keywords].filter(Boolean).join(' ') }));
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const hits = searchDocs(q, docs).hits.slice(0, 8);
+  return c.json(
+    hits
+      .map((h) => byId.get(h.id))
+      .filter(Boolean)
+      .map(({ keywords, ...r }) => ({ ...r, images: json(r.images, []) })),
+  );
 });
 
 supplier.post('/products', requireSupplierScope('products'), async (c) => {
@@ -858,7 +868,8 @@ function taxReport(sid: number, month: string) {
     from,
     to,
   );
-  const revenue = rows.reduce((a, r) => a + r.subtotal + (r.delivery_method === 'supplier' ? r.delivery_fee : 0) - r.supplier_funded_discount, 0);
+  const rowRevenue = (r: any) => r.subtotal + (r.delivery_method === 'supplier' ? r.delivery_fee : 0) - r.supplier_funded_discount;
+  const revenue = rows.reduce((a, r) => a + rowRevenue(r), 0);
   const commission = rows.reduce((a, r) => a + r.commission, 0);
   const servicesTotal = -services.reduce((a, r) => a + r.amount, 0);
   return {
@@ -867,8 +878,8 @@ function taxReport(sid: number, month: string) {
     revenue,
     commission,
     services: servicesTotal,
-    cashRevenue: rows.filter((r) => r.payment_method === 'cash').reduce((a, r) => a + r.subtotal, 0),
-    cashlessRevenue: rows.filter((r) => r.payment_method !== 'cash').reduce((a, r) => a + r.subtotal, 0),
+    cashRevenue: rows.filter((r) => r.payment_method === 'cash').reduce((a, r) => a + rowRevenue(r), 0),
+    cashlessRevenue: rows.filter((r) => r.payment_method !== 'cash').reduce((a, r) => a + rowRevenue(r), 0),
     // Kyrgyz single tax on patent / simplified regime varies — show a reference estimate only.
     taxEstimate: Math.round(revenue * 0.04),
     taxNote: 'Оценка по единому налогу 4% (упрощённая система). Уточните ставку у бухгалтера.',

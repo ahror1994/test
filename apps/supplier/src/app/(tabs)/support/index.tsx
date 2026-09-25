@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { router } from 'expo-router';
-import { Linking } from 'react-native';
 import type { ChatThread } from '@taptym/shared';
 import { Screen } from '@/components/Screen';
+import { LoadError } from '@/components/LoadError';
 import { Sheet } from '@/components/Sheet';
-import { Button, Card, Divider, Empty, ErrorBox, Field, ListRow, Row, SkeletonList, Txt } from '@/components/ui';
+import { Button, Card, Divider, Empty, Field, ListRow, Row, SkeletonList } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { errorText, useT } from '@/lib/useT';
@@ -42,8 +42,8 @@ export default function Support() {
         <Button title="Telegram" icon="paper-plane-outline" kind="secondary" size="md" style={{ flex: 1 }} onPress={() => void Linking.openURL('https://t.me/taptym_support')} />
         <Button title="WhatsApp" icon="logo-whatsapp" kind="secondary" size="md" style={{ flex: 1 }} onPress={() => void Linking.openURL('https://wa.me/996555000000')} />
       </Row>
-      {error && !data ? <ErrorBox text={errorText(t, error)} onRetry={reload} retry={t('retry')} /> : null}
-      {loading ? (
+      <LoadError error={error} onRetry={reload} compact={!!data} />
+      {!data && error ? null : loading ? (
         <SkeletonList n={3} h={70} />
       ) : (
         <Card pad={6}>

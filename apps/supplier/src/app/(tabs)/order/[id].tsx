@@ -4,9 +4,10 @@ import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDateTime, formatPhone, formatPrice, type SubOrder, type SubOrderStatus } from '@taptym/shared';
 import { Screen } from '@/components/Screen';
+import { LoadError } from '@/components/LoadError';
 import { Sheet } from '@/components/Sheet';
 import { Thumb } from '@/components/Thumb';
-import { Button, Card, Chip, Divider, ErrorBox, Field, IconBtn, Notice, Pill, Row, Skeleton, Txt } from '@/components/ui';
+import { Button, Card, Chip, Divider, Field, IconBtn, Notice, Pill, Row, Skeleton, Txt } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { useCan, useStore } from '@/lib/store';
@@ -51,8 +52,8 @@ export default function OrderDetail() {
   if (!o) {
     return (
       <Screen back="/orders" title={t('order')} detail>
-        {error ? <ErrorBox text={errorText(t, error)} onRetry={reload} retry={t('retry')} /> : null}
-        {loading ? (
+        <LoadError error={error} onRetry={reload} />
+        {loading && !error ? (
           <View style={{ gap: 12 }}>
             <Skeleton h={90} r={24} />
             <Skeleton h={160} r={24} />
@@ -71,6 +72,10 @@ export default function OrderDetail() {
   const payout = o.subtotal + (o.deliveryMethod === 'supplier' ? o.deliveryFee : 0) - o.commission - (o.supplierDiscount ?? 0);
   const flow = FLOW.filter((x) => !(o.deliveryMethod === 'pickup' && x === 'in_delivery'));
   const stepIdx = flow.indexOf(o.status);
+  const stopped = o.status === 'cancelled' || o.status === 'rejected';
+  // The API appends the reason to the history author: "Поставщик (Имя): Нет в наличии".
+  const stopBy = stopped ? [...o.history].reverse().find((x) => x.status === o.status)?.by : undefined;
+  const stopReason = stopBy && stopBy.includes(': ') ? stopBy.slice(stopBy.lastIndexOf(': ') + 2) : '';
   const reasons = [t('r_no_stock'), t('r_no_time'), t('r_other')];
 
   const footer =
@@ -143,7 +148,7 @@ export default function OrderDetail() {
           {o.paymentStatus === 'paid' ? <Pill label={t('paid')} tone="success" icon="checkmark" /> : o.paymentStatus === 'cash_on_delivery' ? <Pill label={t('cash_on_delivery')} tone="warning" /> : null}
         </Row>
       ) : null}
-      {o.paymentMethod === 'cash' && (o.deliveryMethod === 'supplier' || o.deliveryMethod === 'pickup') ? (
+      {!stopped && o.paymentMethod === 'cash' && (o.deliveryMethod === 'supplier' || o.deliveryMethod === 'pickup') ? (
         <Notice tone="warning" icon="cash-outline" text={t('collect_cash', { s: formatPrice(o.subtotal - o.promoDiscount + (o.deliveryMethod === 'supplier' ? o.deliveryFee : 0)) })} />
       ) : null}
     </Card>
@@ -183,7 +188,7 @@ export default function OrderDetail() {
       <Divider style={{ marginVertical: 8 }} />
       <Row style={{ justifyContent: 'space-between', paddingHorizontal: 4 }}>
         <Txt v="h3">{t('to_credit')}</Txt>
-        <Txt v="money" color={C.success}>
+        <Txt v="money" color={stopped ? C.faint : C.success} style={stopped ? { textDecorationLine: 'line-through' } : null}>
           {formatPrice(payout)}
         </Txt>
       </Row>
@@ -193,17 +198,17 @@ export default function OrderDetail() {
   const timeline = (
     <Card style={{ gap: 14 }}>
       <Txt v="capB">{t('progress')}</Txt>
-      {o.status === 'cancelled' || o.status === 'rejected' ? <Pill label={t(statusKey(o.status))} tone="danger" icon="close" /> : null}
+      {stopped ? <Notice tone="warning" icon="close-circle-outline" text={stopReason ? `${t(statusKey(o.status))} · ${t('reason')}: ${stopReason}` : t(statusKey(o.status))} /> : null}
       <View style={{ gap: 0 }}>
         {flow.map((st, i) => {
           const h = [...o.history].reverse().find((x) => x.status === st);
-          const done = stepIdx >= i && stepIdx !== -1;
+          const done = stopped ? !!h : stepIdx >= i && stepIdx !== -1;
           const cur = o.status === st;
           return (
             <Row key={st} gap={12} style={{ alignItems: 'flex-start', minHeight: 46 }}>
               <View style={{ alignItems: 'center', width: 24 }}>
                 <View style={[s.dot, done && { backgroundColor: C.primary, borderColor: C.primary }, cur && s.dotCur]}>{done ? <Ionicons name="checkmark" size={12} color="#fff" /> : null}</View>
-                {i < flow.length - 1 ? <View style={[s.rail, stepIdx > i && { backgroundColor: C.primary }]} /> : null}
+                {i < flow.length - 1 ? <View style={[s.rail, (stopped ? !!o.history.find((x) => x.status === flow[i + 1]) : stepIdx > i) && { backgroundColor: C.primary }]} /> : null}
               </View>
               <View style={{ flex: 1, paddingBottom: 10 }}>
                 <Txt v={cur ? 'bodyB' : 'body'} color={done ? C.ink : C.faint}>
@@ -229,6 +234,7 @@ export default function OrderDetail() {
       onRefresh={refresh}
       footer={footer}
     >
+      <LoadError error={error} onRetry={reload} compact />
       <Row>
         <Pill label={t(statusKey(o.status))} tone={statusTone(o.status)} />
         <Txt v="cap">{formatDateTime(o.createdAt)}</Txt>

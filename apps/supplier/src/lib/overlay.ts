@@ -14,9 +14,17 @@ type ConfirmReq = {
 type State = {
   toast: { id: number; text: string; kind: ToastKind } | null;
   confirmReq: ConfirmReq | null;
+  serverSheet: boolean;
+  /** Bumped on every open so the sheet starts from the saved address, not the last draft. */
+  serverSheetKey: number;
 };
 
-export const useOverlay = create<State>(() => ({ toast: null, confirmReq: null }));
+export const useOverlay = create<State>(() => ({ toast: null, confirmReq: null, serverSheet: false, serverSheetKey: 0 }));
+
+/** Opens the "server address" sheet (native only) from anywhere, e.g. the offline state. */
+export function openServerSheet() {
+  useOverlay.setState((s) => ({ serverSheet: true, serverSheetKey: s.serverSheetKey + 1 }));
+}
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 

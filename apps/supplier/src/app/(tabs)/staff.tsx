@@ -3,8 +3,9 @@ import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatPhone, normalizePhone, type SupplierRole, type SupplierStaff } from '@taptym/shared';
 import { Screen } from '@/components/Screen';
+import { LoadError } from '@/components/LoadError';
 import { Sheet } from '@/components/Sheet';
-import { Button, Card, digits, Divider, Empty, ErrorBox, Field, IconBtn, Pill, Row, SkeletonList, Toggle, Txt } from '@/components/ui';
+import { Button, Card, digits, Divider, Empty, Field, IconBtn, Pill, Row, SkeletonList, Toggle, Txt } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { C } from '@/lib/theme';
@@ -24,6 +25,32 @@ export default function Staff() {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [f, setF] = useState({ name: '', phone: '', role: 'cashier' as Exclude<SupplierRole, 'owner'> });
+  const [editing, setEditing] = useState<SupplierStaff | null>(null);
+
+  const openAdd = () => {
+    setEditing(null);
+    setF({ name: '', phone: '', role: 'cashier' });
+    setOpen(true);
+  };
+  const openEdit = (s: SupplierStaff) => {
+    setEditing(s);
+    setF({ name: s.name, phone: digits(s.phone).replace(/^996/, ''), role: s.role as Exclude<SupplierRole, 'owner'> });
+    setOpen(true);
+  };
+  const saveEdit = async () => {
+    if (!editing) return;
+    setBusy(true);
+    try {
+      await api(`/api/s/staff/${editing.id}`, { method: 'PATCH', body: { name: f.name.trim(), role: f.role } });
+      toast(t('saved'));
+      setOpen(false);
+      void reload();
+    } catch (e) {
+      toast(errorText(t, e), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const add = async () => {
     setBusy(true);
@@ -39,9 +66,10 @@ export default function Staff() {
       setBusy(false);
     }
   };
-  const patch = async (s: SupplierStaff, body: object) => {
+  const patch = async (s: SupplierStaff, body: object, msg?: string) => {
     try {
       await api(`/api/s/staff/${s.id}`, { method: 'PATCH', body });
+      if (msg) toast(msg);
       void reload();
     } catch (e) {
       toast(errorText(t, e), 'error');
@@ -66,10 +94,10 @@ export default function Staff() {
       subtitle={t('staff_sub')}
       refreshing={refreshing}
       onRefresh={refresh}
-      footer={<Button title={t('staff_add')} icon="person-add-outline" onPress={() => setOpen(true)} testID="staff-add" />}
+      footer={<Button title={t('staff_add')} icon="person-add-outline" onPress={openAdd} testID="staff-add" />}
     >
-      {error && !data ? <ErrorBox text={errorText(t, error)} onRetry={reload} retry={t('retry')} /> : null}
-      {loading ? (
+      <LoadError error={error} onRetry={reload} compact={!!data} />
+      {!data && error ? null : loading ? (
         <SkeletonList n={3} />
       ) : (
         <Card pad={8}>
@@ -83,18 +111,24 @@ export default function Staff() {
                     {s.name.slice(0, 1).toUpperCase()}
                   </Txt>
                 </View>
-                <View style={{ flex: 1, gap: 3 }}>
+                <Pressable
+                  disabled={s.role === 'owner'}
+                  onPress={() => openEdit(s)}
+                  style={({ pressed }) => [{ flex: 1, gap: 3 }, pressed && { opacity: 0.7 }]}
+                  accessibilityRole={s.role === 'owner' ? undefined : 'button'}
+                  testID={`staff-edit-${s.id}`}
+                >
                   <Txt v="bodyB" color={s.active ? C.ink : C.muted}>
                     {s.name}
                   </Txt>
                   <Row gap={6} wrap>
-                    <Pill tone={s.role === 'owner' ? 'primary' : 'neutral'} label={t(`role_${s.role}` as TKey)} />
+                    <Pill tone={s.role === 'owner' ? 'primary' : 'neutral'} label={t(`role_${s.role}` as TKey)} icon={s.role === 'owner' ? undefined : 'create-outline'} />
                     <Txt v="cap">{formatPhone(s.phone)}</Txt>
                   </Row>
-                </View>
+                </Pressable>
                 {s.role !== 'owner' ? (
                   <>
-                    <Toggle value={s.active} onChange={(v) => patch(s, { active: v })} label={t('active')} />
+                    <Toggle value={s.active} onChange={(v) => patch(s, { active: v }, v ? t('staff_on') : t('staff_off'))} label={t('active')} />
                     <IconBtn icon="trash-outline" label={t('delete')} color={C.danger} bg={C.dangerSoft} size={40} onPress={() => remove(s)} />
                   </>
                 ) : null}
@@ -106,12 +140,18 @@ export default function Staff() {
       <Sheet
         open={open}
         onClose={() => setOpen(false)}
-        title={t('staff_add')}
-        subtitle={t('staff_add_sub')}
-        footer={<Button title={t('staff_add')} icon="checkmark" onPress={add} loading={busy} disabled={!f.name.trim() || f.phone.length !== 9} testID="staff-submit" />}
+        title={editing ? t('staff_edit') : t('staff_add')}
+        subtitle={editing ? t('staff_edit_sub') : t('staff_add_sub')}
+        footer={
+          editing ? (
+            <Button title={t('save')} icon="checkmark" onPress={saveEdit} loading={busy} disabled={!f.name.trim()} testID="staff-save" />
+          ) : (
+            <Button title={t('staff_add')} icon="checkmark" onPress={add} loading={busy} disabled={!f.name.trim() || f.phone.length !== 9} testID="staff-submit" />
+          )
+        }
       >
         <Field label={t('staff_name')} value={f.name} onChangeText={(x) => setF({ ...f, name: x })} placeholder={t('staff_name_ph')} testID="staff-name" />
-        <Field label={t('phone')} prefix="+996" value={f.phone} onChangeText={(x) => setF({ ...f, phone: digits(x).replace(/^996/, '').slice(0, 9) })} keyboardType="phone-pad" placeholder="555 123 456" testID="staff-phone" />
+        <Field label={t('phone')} prefix="+996" value={f.phone} onChangeText={(x) => setF({ ...f, phone: digits(x).replace(/^996/, '').slice(0, 9) })} keyboardType="phone-pad" placeholder="555 123 456" editable={!editing} testID="staff-phone" />
         <Txt v="capB">{t('staff_role')}</Txt>
         {ROLES.map((r) => {
           const on = f.role === r.role;
@@ -126,7 +166,7 @@ export default function Staff() {
             </Pressable>
           );
         })}
-        <Txt v="cap">{t('staff_login_hint')}</Txt>
+        {!editing ? <Txt v="cap">{t('staff_login_hint')}</Txt> : null}
       </Sheet>
     </Screen>
   );

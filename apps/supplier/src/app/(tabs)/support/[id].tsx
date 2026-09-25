@@ -3,7 +3,8 @@ import { Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { useLocalSearchParams } from 'expo-router';
 import type { ChatMessage, ChatThread } from '@taptym/shared';
 import { Screen } from '@/components/Screen';
-import { ErrorBox, IconBtn, SkeletonList, Txt } from '@/components/ui';
+import { LoadError } from '@/components/LoadError';
+import { IconBtn, SkeletonList, Txt } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { C, FONT } from '@/lib/theme';
@@ -67,9 +68,9 @@ export default function Chat() {
         </View>
       }
     >
-      {error && !data ? <ErrorBox text={errorText(t, error)} onRetry={reload} retry={t('retry')} /> : null}
+      <LoadError error={error} onRetry={reload} compact={!!data} />
       {!data ? (
-        <SkeletonList n={3} h={60} />
+        error ? null : <SkeletonList n={3} h={60} />
       ) : (
         <ScrollView ref={scroll} style={{ flex: 1, maxHeight: Platform.OS === 'web' ? height - 190 : undefined }} contentContainerStyle={{ gap: 8, paddingBottom: 12 }}>
           {data.messages.map((m) => {

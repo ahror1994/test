@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { SupplierProduct } from '@taptym/shared';
 import { Screen } from '@/components/Screen';
+import { LoadError } from '@/components/LoadError';
 import { fromProduct, ProductForm, toBody, type ProductFormValue } from '@/components/ProductForm';
 import { Button, ErrorBox, SkeletonList } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -19,11 +20,13 @@ export default function EditProduct() {
   const p = data?.items.find((x) => String(x.offerId) === id);
   const [v, setV] = useState<ProductFormValue | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => {
+  // Re-init the form only when switching to another product (not on every refetch).
+  const pid = p?.offerId ?? null;
+  const [formFor, setFormFor] = useState<number | null>(null);
+  if (pid !== formFor) {
+    setFormFor(pid);
     setV(p ? fromProduct(p) : null);
-    // Re-init only when switching to another product.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p?.offerId]);
+  }
 
   const save = async () => {
     if (!v || !p) return;
@@ -68,8 +71,8 @@ export default function EditProduct() {
         ) : undefined
       }
     >
-      {error ? <ErrorBox text={errorText(t, error)} onRetry={reload} retry={t('retry')} /> : null}
-      {!data ? <SkeletonList n={3} h={160} /> : !p ? <ErrorBox text={t('err_not_found')} /> : v ? <ProductForm key={p.offerId} value={v} onChange={setV} mode="edit" /> : null}
+      <LoadError error={error} onRetry={reload} compact={!!data} />
+      {!data ? (error ? null : <SkeletonList n={3} h={160} />) : !p ? <ErrorBox text={t('err_not_found')} /> : v ? <ProductForm key={p.offerId} value={v} onChange={setV} mode="edit" /> : null}
     </Screen>
   );
 }

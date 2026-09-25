@@ -77,7 +77,7 @@ export function seedDemo() {
         iso((30 - s.trialDays) * DAY),
       );
       supplierIds.push(lastInsertRowid);
-      run('INSERT INTO supplier_staff(supplier_id, name, phone, role) VALUES(?,?,?,?)', lastInsertRowid, i === 0 ? 'Руслан (владелец)' : 'Владелец', phone, 'owner');
+      run('INSERT INTO supplier_staff(supplier_id, name, phone, role) VALUES(?,?,?,?)', lastInsertRowid, i === 0 ? 'Руслан' : 'Владелец', phone, 'owner');
     });
     run('INSERT INTO supplier_staff(supplier_id, name, phone, role) VALUES(?,?,?,?)', supplierIds[0], 'Кассир Гулира', '+996555100002', 'cashier');
     run('INSERT INTO supplier_staff(supplier_id, name, phone, role) VALUES(?,?,?,?)', supplierIds[0], 'Склад Бакыт', '+996555100003', 'warehouse');

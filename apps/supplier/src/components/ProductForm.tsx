@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
@@ -11,10 +11,41 @@ import { errorText, useT } from '@/lib/useT';
 import { useStore } from '@/lib/store';
 import { toast } from '@/lib/overlay';
 import { useLayout } from '@/lib/layout';
-import { Button, Card, Chip, digits, Field, Notice, Row, Stepper, SwitchRow, Txt } from './ui';
+import { Card, Chip, digits, Field, Notice, Row, Stepper, SwitchRow, Txt } from './ui';
 import { Thumb } from './Thumb';
 
 type Match = { id: number; title: string; emoji: string; color: string; category_id: string; images: string[]; brand: string | null; min_price?: number | null };
+
+type StoreCard = { id: number; title: string; emoji: string; color: string; categoryId: string; images: string[]; brand: string | null; minPrice: number | null };
+
+/**
+ * Exact title matches (the API's LIKE is case-sensitive for Cyrillic, so the capitalized variant is
+ * tried too) followed by the storefront's typo-tolerant search, which finds "тетрадь 48 клетка".
+ */
+const STOP = new Set(['для', 'без', 'под', 'над', 'при', 'или', 'как', 'шт', 'the', 'and']);
+
+async function searchCatalog(q: string): Promise<Match[]> {
+  const cap = q.charAt(0).toUpperCase() + q.slice(1);
+  const variants = [...new Set([q, cap, q.toLowerCase()])];
+  const [exact, smart] = await Promise.all([
+    Promise.all(variants.map((x) => api<Match[]>(`/api/s/catalog/match?q=${encodeURIComponent(x)}`).catch(() => [] as Match[]))),
+    api<{ items: StoreCard[] } | StoreCard[]>(`/api/c/products?q=${encodeURIComponent(q)}`).catch(() => ({ items: [] as StoreCard[] })),
+  ]);
+  const cards = Array.isArray(smart) ? smart : (smart.items ?? []);
+  // The storefront search also matches filler words ("для"), so keep cards sharing a word stem with the query.
+  const stems = q
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w.length >= 3 && !STOP.has(w))
+    .map((w) => w.slice(0, 4));
+  const related = cards.filter((c) => stems.some((st) => c.title.toLowerCase().includes(st)));
+  const all: Match[] = [
+    ...exact.flat(),
+    ...(related.length ? related : cards).map((c) => ({ id: c.id, title: c.title, emoji: c.emoji, color: c.color, category_id: c.categoryId, images: c.images ?? [], brand: c.brand, min_price: c.minPrice })),
+  ];
+  const seen = new Set<number>();
+  return all.filter((m) => !seen.has(m.id) && !!seen.add(m.id)).slice(0, 8);
+}
 
 export type ProductFormValue = {
   images: string[];
@@ -83,29 +114,34 @@ export function ProductForm({ value, onChange, mode }: { value: ProductFormValue
   const { wide } = useLayout();
   const [uploading, setUploading] = useState(0);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [byBarcode, setByBarcode] = useState(false);
   const [matched, setMatched] = useState<Match | null>(null);
   const [more, setMore] = useState(mode === 'edit');
   const mine = useApi<{ items: SupplierProduct[] }>(mode === 'new' ? '/api/s/products' : null);
   const myIds = new Set((mine.data?.items ?? []).map((x) => x.productId));
   const v = value;
   const set = (patch: Partial<ProductFormValue>) => onChange({ ...v, ...patch });
+  // Photo uploads finish one by one after awaits; they must append to the newest form value.
   const latest = useRef(v);
-  latest.current = v;
+  useLayoutEffect(() => {
+    latest.current = v;
+  });
 
+  const q = v.title.trim();
+  const searching = mode === 'new' && !matched && q.length >= 3;
+  const shownMatches = mode === 'new' && !matched && (q.length >= 3 || byBarcode) ? matches : [];
   useEffect(() => {
-    if (mode !== 'new' || matched) return;
-    const q = v.title.trim();
-    if (q.length < 3) {
-      setMatches([]);
-      return;
-    }
+    if (!searching) return;
     const id = setTimeout(() => {
-      void api<Match[]>(`/api/s/catalog/match?q=${encodeURIComponent(q)}`)
-        .then(setMatches)
+      void searchCatalog(q)
+        .then((r) => {
+          setMatches(r);
+          setByBarcode(false);
+        })
         .catch(() => setMatches([]));
     }, 300);
     return () => clearTimeout(id);
-  }, [v.title, mode, matched]);
+  }, [q, searching]);
 
   const pickMatch = (m: Match) => {
     setMatched(m);
@@ -118,7 +154,10 @@ export function ProductForm({ value, onChange, mode }: { value: ProductFormValue
     if (mode !== 'new' || matched || b.length < 6) return;
     try {
       const r = await api<Match[]>(`/api/s/catalog/match?barcode=${encodeURIComponent(b)}`);
-      if (r.length) setMatches(r);
+      if (r.length) {
+        setMatches(r);
+        setByBarcode(true);
+      }
     } catch {}
   };
 
@@ -212,7 +251,7 @@ export function ProductForm({ value, onChange, mode }: { value: ProductFormValue
       ) : (
         <Field value={v.title} onChangeText={(x) => set({ title: x })} placeholder={t('pf_title_ph')} testID="pf-title" />
       )}
-      {!matched && matches.length ? (
+      {shownMatches.length ? (
         <View style={s.suggest}>
           <Row gap={8}>
             <Ionicons name="sparkles" size={16} color={C.primary} />
@@ -220,7 +259,7 @@ export function ProductForm({ value, onChange, mode }: { value: ProductFormValue
               {t('pf_exists')}
             </Txt>
           </Row>
-          {matches.slice(0, 5).map((m) => {
+          {shownMatches.slice(0, 5).map((m) => {
             const own = myIds.has(m.id);
             return (
             <Pressable key={m.id} disabled={own} onPress={() => pickMatch(m)} style={({ hovered, pressed }: any) => [s.sugRow, hovered && !own && { backgroundColor: C.card }, pressed && { opacity: 0.7 }, own && { opacity: 0.55 }]} testID={`match-${m.id}`}>

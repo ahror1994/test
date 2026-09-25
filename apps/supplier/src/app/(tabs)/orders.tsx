@@ -4,7 +4,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatPrice, type SubOrder } from '@taptym/shared';
 import { Screen } from '@/components/Screen';
-import { Button, Card, Empty, ErrorBox, Grid, Pill, Row, Segmented, SkeletonList, Txt } from '@/components/ui';
+import { LoadError } from '@/components/LoadError';
+import { Button, Card, Empty, Grid, Pill, Row, Segmented, SkeletonList, Txt } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { useCan, useStore } from '@/lib/store';
@@ -38,8 +39,8 @@ export default function Orders() {
 
   return (
     <Screen title={t('tab_orders')} subtitle={t('auto_refresh')} refreshing={refreshing} onRefresh={refresh} header={<Segmented items={tabs} value={tab} onChange={setTab} />}>
-      {error && !data ? <ErrorBox text={errorText(t, error)} onRetry={reload} retry={t('retry')} /> : null}
-      {loading ? (
+      <LoadError error={error} onRetry={reload} compact={!!data} />
+      {!data && error ? null : loading ? (
         <SkeletonList n={4} h={140} />
       ) : data && data.items.length === 0 ? (
         <Empty emoji={empty[tab][0]} title={t(empty[tab][1])} text={t(empty[tab][2])} />

@@ -3,7 +3,7 @@ import { Platform, ScrollView, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Field, IconBtn, Notice, Pill, Row, Txt } from '@/components/ui';
-import { api, API_URL } from '@/lib/api';
+import { api } from '@/lib/api';
 import { useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
 import { errorText, useT } from '@/lib/useT';
@@ -14,12 +14,13 @@ export default function Integrations() {
   const t = useT();
   const { wide } = useLayout();
   const me = useStore((s) => s.me);
+  const apiUrl = useStore((s) => s.apiUrl);
   const [ms, setMs] = useState('');
   const [onec, setOnec] = useState('');
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const token = me?.integrations.apiToken ?? '';
-  const base = API_URL || (Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : 'https://api.taptym.kg');
+  const base = apiUrl || (Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : 'https://api.taptym.kg');
 
   const post = async (key: string, body: object, msg: string) => {
     setBusy(key);

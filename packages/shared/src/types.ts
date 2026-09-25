@@ -254,7 +254,7 @@ export interface SubOrder {
   items: OrderItem[];
   createdAt: string;
   updatedAt: string;
-  history: { status: SubOrderStatus; at: string; by: string }[];
+  history: { status: SubOrderStatus; at: string; by: string; reason?: string }[];
   customer?: { name: string; phone: string; address: string; isCompany: boolean; companyName: string | null };
   paymentMethod?: PaymentMethod;
   paymentStatus?: PaymentStatus;

@@ -4,8 +4,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BRAND, formatPrice, type SupplierProduct } from '@taptym/shared';
 import { Screen } from '@/components/Screen';
+import { LoadError } from '@/components/LoadError';
 import { Thumb } from '@/components/Thumb';
-import { Button, Card, Chip, Divider, digits, Empty, ErrorBox, Pill, Row, SkeletonList, Stepper, Toggle, Txt } from '@/components/ui';
+import { Button, Card, Chip, Divider, digits, Empty, Pill, Row, SkeletonList, Stepper, Toggle, Txt } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { C, FONT } from '@/lib/theme';
@@ -22,9 +23,12 @@ export default function Products() {
   const [filter, setFilter] = useState<Filter>(params.filter ?? 'all');
   const [q, setQ] = useState('');
   const [dq, setDq] = useState('');
-  useEffect(() => {
+  // "Все" on the dashboard's low-stock card links here with ?filter=low.
+  const [paramSeen, setParamSeen] = useState(params.filter);
+  if (params.filter !== paramSeen) {
+    setParamSeen(params.filter);
     if (params.filter) setFilter(params.filter);
-  }, [params.filter]);
+  }
   useEffect(() => {
     const id = setTimeout(() => setDq(q.trim()), 300);
     return () => clearTimeout(id);
@@ -65,8 +69,8 @@ export default function Products() {
           <Chip key={f.key} label={f.label} icon={f.icon} active={filter === f.key} onPress={() => setFilter(f.key)} tone={f.key === 'expensive' ? 'danger' : f.key === 'low' ? 'warning' : undefined} />
         ))}
       </Row>
-      {error && !data ? <ErrorBox text={errorText(t, error)} onRetry={reload} retry={t('retry')} /> : null}
-      {loading ? (
+      <LoadError error={error} onRetry={reload} compact={!!data} />
+      {!data && error ? null : loading ? (
         <SkeletonList n={6} h={wide ? 72 : 130} />
       ) : data && data.items.length === 0 ? (
         <Empty emoji={filter === 'all' && !dq ? '📦' : '🔍'} title={filter === 'all' && !dq ? t('no_products') : t('nothing_found')} text={filter === 'all' && !dq ? t('no_products_sub') : undefined} action={filter === 'all' && !dq ? t('add_product') : undefined} onAction={() => router.navigate('/product/new')} />
@@ -108,8 +112,13 @@ function ProductRow({ p, wide, onUpdated }: { p: SupplierProduct; wide: boolean;
   const [price, setPrice] = useState(String(p.price));
   const [stock, setStock] = useState(p.stock);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => setPrice(String(p.price)), [p.price]);
-  useEffect(() => setStock(p.stock), [p.stock]);
+  // Follow server-side changes (refetch, dashboard quick actions) without clobbering typing in between.
+  const [synced, setSynced] = useState({ price: p.price, stock: p.stock });
+  if (synced.price !== p.price || synced.stock !== p.stock) {
+    setSynced({ price: p.price, stock: p.stock });
+    if (synced.price !== p.price) setPrice(String(p.price));
+    if (synced.stock !== p.stock) setStock(p.stock);
+  }
 
   const save = async (body: Partial<SupplierProduct>, msg: string) => {
     try {

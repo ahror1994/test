@@ -1,9 +1,17 @@
-import { createTranslator, type Lang } from '@taptym/shared';
+import { Platform } from 'react-native';
+import { createTranslator, pluralRu, type Lang } from '@taptym/shared';
 import { dict, type TKey } from '../i18n';
 import { useStore } from './store';
 import { ApiError } from './api';
 
-const translate = createTranslator(dict);
+const base = createTranslator(dict);
+
+/** Russian plurals inline: "{n} {n|товар|товара|товаров}". */
+function translate(lang: Lang, key: TKey, vars?: Record<string, string | number>) {
+  const s = base(lang, key, vars);
+  if (!vars || !s.includes('|')) return s;
+  return s.replace(/\{(\w+)\|([^|}]*)\|([^|}]*)\|([^}]*)\}/g, (_, k: string, one: string, few: string, many: string) => pluralRu(Number(vars[k]) || 0, one, few, many));
+}
 
 export type T = (key: TKey, vars?: Record<string, string | number>) => string;
 
@@ -47,6 +55,7 @@ const ERRORS: Record<string, TKey> = {
 
 export function errorText(t: T, e: unknown): string {
   const code = e instanceof ApiError ? e.code : 'network';
+  if (code === 'network' && Platform.OS === 'web') return t('err_network_web');
   if (code.startsWith('bad_transition')) return t('err_transition');
   return t(ERRORS[code] ?? 'err_generic');
 }

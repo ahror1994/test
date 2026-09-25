@@ -477,7 +477,7 @@ export async function changeSubOrderStatus(subId: number, next: SubOrderStatus, 
   const o = get<any>('SELECT * FROM orders WHERE id = ?', s.order_id);
   const now = nowIso();
   const history = json<any[]>(s.history, []);
-  history.push({ status: next, at: now, by: reason ? `${by}: ${reason}` : by });
+  history.push({ status: next, at: now, by: reason ? `${by}: ${reason}` : by, ...(reason ? { reason } : {}) });
   tx(() => {
     run('UPDATE sub_orders SET status = ?, history = ?, updated_at = ? WHERE id = ?', next, JSON.stringify(history), now, subId);
     if (next === 'delivered') settleSubOrder(subId);

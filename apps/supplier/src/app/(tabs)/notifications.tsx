@@ -3,12 +3,13 @@ import { View } from 'react-native';
 import { router } from 'expo-router';
 import type { NotificationItem } from '@taptym/shared';
 import { Screen } from '@/components/Screen';
-import { Card, Divider, Empty, ErrorBox, ListRow, SkeletonList } from '@/components/ui';
+import { LoadError } from '@/components/LoadError';
+import { Card, Divider, Empty, ListRow, SkeletonList } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
-import { errorText, useT } from '@/lib/useT';
+import { useT } from '@/lib/useT';
 import { timeAgo } from '@/lib/labels';
 
 function hrefFor(link: string | null): string | null {
@@ -32,8 +33,8 @@ export default function Notifications() {
 
   return (
     <Screen back="/" detail title={t('m_notifications')} subtitle={t('notif_sub')} refreshing={refreshing} onRefresh={refresh}>
-      {error && !data ? <ErrorBox text={errorText(t, error)} onRetry={reload} retry={t('retry')} /> : null}
-      {loading ? (
+      <LoadError error={error} onRetry={reload} compact={!!data} />
+      {!data && error ? null : loading ? (
         <SkeletonList n={5} h={64} />
       ) : (
         <Card pad={6}>

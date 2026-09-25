@@ -33,7 +33,7 @@ export default function TabsLayout() {
   const { wide } = useLayout();
   const ready = useStore((s) => s.ready);
   const token = useStore((s) => s.token);
-  const newOrders = useStore((s) => s.me?.newOrders ?? 0);
+  const newOrders = useStore((s) => s.me?.newOrders);
   const t = useT();
   const prev = useRef<number | null>(null);
 
@@ -44,6 +44,8 @@ export default function TabsLayout() {
     return () => clearInterval(id);
   }, [token]);
   useEffect(() => {
+    // Unknown until /me loads; comparing against a default 0 would announce old orders on every start.
+    if (newOrders == null) return;
     if (prev.current != null && newOrders > prev.current) {
       haptic.success();
       toast(t('new_order_toast'), 'info');

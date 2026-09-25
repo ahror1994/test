@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOverlay } from '@/lib/overlay';
 import { C, FONT, shadow } from '@/lib/theme';
 import { useT } from '@/lib/useT';
+import { ServerSheet } from './ServerSheet';
 import { Sheet } from './Sheet';
 import { Button, Txt } from './ui';
 
@@ -39,6 +40,7 @@ export function OverlayHost() {
       >
         {req?.message ? <Txt>{req.message}</Txt> : null}
       </Sheet>
+      <ServerSheet />
     </>
   );
 }

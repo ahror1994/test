@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Linking, Platform, ScrollView, View } from 'react-native';
 import { formatDate, formatPrice, type PaymentMethod } from '@taptym/shared';
 import { Screen } from '@/components/Screen';
-import { Button, Card, Chip, Divider, Empty, ErrorBox, Grid, Notice, Row, Skeleton, Stat, Txt } from '@/components/ui';
+import { LoadError } from '@/components/LoadError';
+import { Button, Card, Chip, Divider, Empty, Grid, Notice, Row, Skeleton, Stat, Txt } from '@/components/ui';
 import { downloadUrl } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { C } from '@/lib/theme';
-import { errorText, useT } from '@/lib/useT';
+import { useT } from '@/lib/useT';
 import { useLayout } from '@/lib/layout';
 import { monthKey, paymentKey } from '@/lib/labels';
 
@@ -48,8 +49,8 @@ export default function Reports() {
           <Chip key={m.key} label={m.label} active={m.key === month} onPress={() => setMonth(m.key)} icon="calendar-outline" />
         ))}
       </ScrollView>
-      {error && !data ? <ErrorBox text={errorText(t, error)} onRetry={reload} retry={t('retry')} /> : null}
-      {loading || !data ? (
+      <LoadError error={error} onRetry={reload} compact={!!data} />
+      {!data && error ? null : loading || !data ? (
         <Grid cols={wide ? 3 : 2}>
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <Skeleton key={i} h={118} r={24} />

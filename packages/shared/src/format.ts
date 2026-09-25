@@ -1,12 +1,19 @@
 import { BRAND } from './brand';
 
+let currencyLabel: string = BRAND.currency;
+
+/** Uzbek (Latin) spells the currency «so'm»; the other interface languages use «сом». */
+export function setPriceLocale(lang: string) {
+  currencyLabel = lang === 'uz' ? "so'm" : BRAND.currency;
+}
+
 export function formatPrice(value: number, withCurrency = true): string {
   const rounded = Math.round(value);
   const sign = rounded < 0 ? '−' : '';
   const s = Math.abs(rounded)
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
-  return withCurrency ? `${sign}${s}\u00a0${BRAND.currency}` : `${sign}${s}`;
+  return withCurrency ? `${sign}${s}\u00a0${currencyLabel}` : `${sign}${s}`;
 }
 
 export function formatPhone(phone: string): string {

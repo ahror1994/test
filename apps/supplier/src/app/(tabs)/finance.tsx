@@ -3,8 +3,9 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BRAND, formatDateTime, formatPrice, type LedgerEntry, type LedgerType, type PayoutBreakdown, type PayoutStatus } from '@taptym/shared';
 import { Screen } from '@/components/Screen';
+import { LoadError } from '@/components/LoadError';
 import { Sheet } from '@/components/Sheet';
-import { Button, Card, Chip, digits, Divider, Empty, ErrorBox, Field, IconName, Money, Notice, Pill, Row, Section, Skeleton, Txt } from '@/components/ui';
+import { Button, Card, Chip, digits, Divider, Empty, Field, IconName, Money, Notice, Pill, Row, Section, Skeleton, Txt } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
 import { useCan } from '@/lib/store';
@@ -80,8 +81,8 @@ export default function Finance() {
   if (loading || !data)
     return (
       <Screen title={t('tab_finance')}>
-        {error ? <ErrorBox text={errorText(t, error)} onRetry={reload} retry={t('retry')} /> : null}
-        {loading ? (
+        <LoadError error={error} onRetry={reload} />
+        {loading && !error ? (
           <View style={{ gap: 12 }}>
             <Skeleton h={180} r={28} />
             <Skeleton h={320} r={24} />
@@ -202,7 +203,7 @@ export default function Finance() {
                 <Ionicons name={LEDGER_ICON[l.type]} size={18} color={l.amount >= 0 ? C.success : C.ink2} />
               </View>
               <View style={{ flex: 1 }}>
-                <Txt v="bodyB" numberOfLines={1}>
+                <Txt v="bodyB" numberOfLines={2}>
                   {l.note}
                 </Txt>
                 <Txt v="cap">{formatDateTime(l.createdAt)}</Txt>
@@ -220,6 +221,7 @@ export default function Finance() {
 
   return (
     <Screen title={t('tab_finance')} subtitle={t('finance_sub')} refreshing={refreshing} onRefresh={refresh}>
+      <LoadError error={error} onRetry={reload} compact />
       {wide ? (
         <Row gap={16} style={{ alignItems: 'flex-start' }}>
           <View style={{ flex: 1, gap: 16 }}>

@@ -10,7 +10,8 @@ import { C, FONT, shadow } from '@/lib/theme';
 import { errorText, useT } from '@/lib/useT';
 import { useLayout } from '@/lib/layout';
 import { toast } from '@/lib/overlay';
-import { Button, Card, Chip, digits, Field, Notice, Row, SwitchRow, Txt } from '@/components/ui';
+import { Button, Chip, digits, Field, Notice, Row, SwitchRow, Txt } from '@/components/ui';
+import { ServerRow } from '@/components/ServerSheet';
 
 type Step = 'phone' | 'code' | 'register' | 'welcome';
 type Loc = { id: string; label: string; line: string; lat: number; lng: number };
@@ -210,26 +211,29 @@ export default function Login() {
           <Txt v="h1">{t('reg_title')}</Txt>
           <Txt v="cap">{t('reg_sub')}</Txt>
         </View>
-        <Field label={t('store_name')} placeholder={t('store_name_ph')} value={reg.name} onChangeText={(v) => setReg({ ...reg, name: v })} testID="reg-name" />
-        <Field label={t('owner_name')} placeholder={t('owner_name_ph')} value={reg.ownerName} onChangeText={(v) => setReg({ ...reg, ownerName: v })} />
-        <View style={{ gap: 8 }}>
-          <Txt v="capB">{t('store_address')}</Txt>
-          <Row gap={8} wrap>
-            {locs.map((l) => (
-              <Chip key={l.id} label={l.label} icon="location-outline" active={reg.address === l.line} onPress={() => setReg({ ...reg, address: l.line, lat: l.lat, lng: l.lng })} />
-            ))}
-          </Row>
-          <Field placeholder={t('address_ph')} value={reg.address} onChangeText={(v) => setReg({ ...reg, address: v })} testID="reg-address" />
-        </View>
-        <Card tint={C.bg} style={{ gap: 10, shadowOpacity: 0 }}>
-          <SwitchRow icon="bicycle-outline" label={t('own_delivery')} hint={t('own_delivery_hint')} value={reg.ownDelivery} onChange={(v) => setReg({ ...reg, ownDelivery: v })} />
-          {reg.ownDelivery ? (
-            <Row gap={10}>
-              <Field style={{ flex: 1 }} label={t('delivery_fee')} value={reg.fee} onChangeText={(v) => setReg({ ...reg, fee: digits(v) })} keyboardType="number-pad" suffix={BRAND.currency} />
-              <Field style={{ flex: 1 }} label={t('free_from')} value={reg.freeFrom} onChangeText={(v) => setReg({ ...reg, freeFrom: digits(v) })} keyboardType="number-pad" suffix={BRAND.currency} />
+        {/* Inputs are grey-on-white; on phones the form sits on the grey page, so it gets its own card. */}
+        <View style={wide ? { gap: 16 } : s.formCard}>
+          <Field label={t('store_name')} placeholder={t('store_name_ph')} value={reg.name} onChangeText={(v) => setReg({ ...reg, name: v })} testID="reg-name" />
+          <Field label={t('owner_name')} placeholder={t('owner_name_ph')} value={reg.ownerName} onChangeText={(v) => setReg({ ...reg, ownerName: v })} />
+          <View style={{ gap: 8 }}>
+            <Txt v="capB">{t('store_address')}</Txt>
+            <Row gap={8} wrap>
+              {locs.map((l) => (
+                <Chip key={l.id} label={l.label} icon="location-outline" active={reg.address === l.line} onPress={() => setReg({ ...reg, address: l.line, lat: l.lat, lng: l.lng })} />
+              ))}
             </Row>
-          ) : null}
-        </Card>
+            <Field placeholder={t('address_ph')} value={reg.address} onChangeText={(v) => setReg({ ...reg, address: v })} testID="reg-address" />
+          </View>
+          <View style={s.deliveryBox}>
+            <SwitchRow icon="bicycle-outline" label={t('own_delivery')} hint={t('own_delivery_hint')} value={reg.ownDelivery} onChange={(v) => setReg({ ...reg, ownDelivery: v })} />
+            {reg.ownDelivery ? (
+              <Row gap={10}>
+                <Field style={{ flex: 1 }} label={t('delivery_fee')} value={reg.fee} onChangeText={(v) => setReg({ ...reg, fee: digits(v) })} keyboardType="number-pad" suffix={BRAND.currency} />
+                <Field style={{ flex: 1 }} label={t('free_from')} value={reg.freeFrom} onChangeText={(v) => setReg({ ...reg, freeFrom: digits(v) })} keyboardType="number-pad" suffix={BRAND.currency} />
+              </Row>
+            ) : null}
+          </View>
+        </View>
         {err ? <Txt color={C.danger}>{err}</Txt> : null}
         <Button title={t('reg_btn')} icon="rocket-outline" onPress={register} loading={busy} testID="reg-submit" />
       </>
@@ -281,6 +285,7 @@ export default function Login() {
           </View>
           {step !== 'welcome' ? langBar : null}
           <View style={{ gap: 16, marginTop: 8 }}>{content}</View>
+          {step === 'phone' || step === 'code' ? <ServerRow /> : null}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -303,4 +308,6 @@ const s = StyleSheet.create({
   heroTitle: { color: '#fff', fontSize: 26, fontWeight: '900', letterSpacing: -0.6, fontFamily: FONT },
   heroSub: { color: 'rgba(255,255,255,0.85)', fontSize: 15, fontWeight: '600', fontFamily: FONT },
   perk: { backgroundColor: C.card, borderRadius: 20, padding: 14, borderWidth: 1, borderColor: C.line },
+  formCard: { backgroundColor: C.card, borderRadius: 24, padding: 16, gap: 16, ...shadow.soft },
+  deliveryBox: { gap: 10, borderRadius: 20, padding: 14, borderWidth: 1.5, borderColor: C.line, backgroundColor: C.card },
 });

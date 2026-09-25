@@ -7,7 +7,8 @@ import { allowed, MORE_ITEMS } from '@/lib/nav';
 import { useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
 import { useT } from '@/lib/useT';
-import { confirm } from '@/lib/overlay';
+import { confirm, openServerSheet } from '@/lib/overlay';
+import { SERVER_CONFIGURABLE } from '@/lib/api';
 import { useLayout } from '@/lib/layout';
 import type { TKey } from '../../i18n';
 
@@ -28,6 +29,7 @@ export default function More() {
   const t = useT();
   const me = useStore((s) => s.me);
   const lang = useStore((s) => s.lang);
+  const apiUrl = useStore((s) => s.apiUrl);
   const { cols } = useLayout();
   const perms = me?.permissions ?? [];
   const items = MORE_ITEMS.filter((x) => allowed(x, perms));
@@ -69,6 +71,11 @@ export default function More() {
           </Card>
         ))}
       </View>
+      {SERVER_CONFIGURABLE ? (
+        <Card pad={6}>
+          <ListRow icon="server-outline" title={t('server')} subtitle={apiUrl.replace(/^https?:\/\//, '')} onPress={openServerSheet} />
+        </Card>
+      ) : null}
       <Card pad={6}>
         <ListRow
           icon="log-out-outline"
