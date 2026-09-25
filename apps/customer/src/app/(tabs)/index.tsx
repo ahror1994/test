@@ -57,23 +57,33 @@ export default function HomeScreen() {
 
           <Section title={t('categories')}>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, rowGap: 14 }}>
-              {CATEGORIES.map((c) => (
-                <Pressable
-                  key={c.id}
-                  onPress={() => {
-                    haptic.tap();
-                    router.push(`/category/${c.id}`);
-                  }}
-                  style={({ pressed }) => [{ width: catW, alignItems: 'center', gap: 6 }, pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] }]}
-                >
-                  <View style={[s.cat, { backgroundColor: c.color, width: Math.min(catW, 84), height: Math.min(catW, 84) }]}>
-                    <Text style={{ fontSize: Math.min(catW, 84) * 0.44 }}>{c.emoji}</Text>
-                  </View>
-                  <Txt v="small" center lines={2} style={{ color: C.ink, fontWeight: '700', fontSize: 11, lineHeight: 14, letterSpacing: -0.2 }}>
-                    {c.name[lang] ?? c.name.ru}
-                  </Txt>
-                </Pressable>
-              ))}
+              {CATEGORIES.map((c) => {
+                const label = c.name[lang] ?? c.name.ru;
+                // Labels may use the gap next to the tile; long single words (kk/ky) shrink instead of breaking mid-word.
+                const labelW = catW + 10;
+                const longest = Math.max(...label.split(/\s+/).map((w) => w.length));
+                const fs = Math.max(9, Math.min(11, labelW / (longest * 0.7)));
+                return (
+                  <Pressable
+                    key={c.id}
+                    onPress={() => {
+                      haptic.tap();
+                      router.push(`/category/${c.id}`);
+                    }}
+                    style={({ pressed }) => [{ width: catW, alignItems: 'center', gap: 6 }, pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] }]}
+                  >
+                    <View style={[s.cat, { backgroundColor: c.color, width: Math.min(catW, 84), height: Math.min(catW, 84) }]}>
+                      <Text style={{ fontSize: Math.min(catW, 84) * 0.44 }}>{c.emoji}</Text>
+                    </View>
+                    {/* Text is capped at its parent's width on web, so a View carries the wider label box. */}
+                    <View style={{ width: labelW, alignItems: 'center' }}>
+                      <Txt v="small" center lines={2} style={{ color: C.ink, fontWeight: '700', fontSize: fs, lineHeight: Math.round(fs * 1.3), letterSpacing: -0.2 }}>
+                        {label}
+                      </Txt>
+                    </View>
+                  </Pressable>
+                );
+              })}
             </View>
           </Section>
 

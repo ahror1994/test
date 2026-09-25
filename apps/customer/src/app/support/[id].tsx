@@ -5,7 +5,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatDateTime, type ChatMessage } from '@taptym/shared';
 import { AuthGate } from '@/components/auth-gate';
-import { Header, Skeleton, styles as ui, Txt } from '@/components/ui';
+import { ErrorState, Header, Skeleton, styles as ui, Txt } from '@/components/ui';
 import { errorText, useT } from '@/i18n';
 import { api, useQuery } from '@/lib/api';
 import { haptic } from '@/lib/haptics';
@@ -58,7 +58,9 @@ function Inner() {
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Header title={q.data?.thread.title ?? t('support')} />
       <ScrollView ref={scroll} style={{ flex: 1 }} contentContainerStyle={[ui.page, ui.pagePad, { paddingVertical: 12, gap: 8 }]}>
-        {!q.data ? (
+        {q.error && !q.data ? (
+          <ErrorState error={q.error} onRetry={q.refresh} />
+        ) : !q.data ? (
           <View style={{ gap: 10 }}>
             <Skeleton h={60} w="70%" r={R.xl} />
             <Skeleton h={60} w="60%" r={R.xl} style={{ alignSelf: 'flex-end' }} />

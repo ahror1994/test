@@ -5,6 +5,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BRAND, DEMO, formatPhone, type CustomerProfile } from '@taptym/shared';
 import { LangPicker } from '@/components/lang-picker';
+import { ServerRow } from '@/components/server-sheet';
 import { Button, Field, Row, Txt } from '@/components/ui';
 import { errorText, useT } from '@/i18n';
 import { api } from '@/lib/api';
@@ -202,6 +203,7 @@ export default function LoginScreen() {
           <Txt v="small" center style={{ marginTop: 18 }}>
             {t('terms')}
           </Txt>
+          <ServerRow style={{ marginTop: 10 }} />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

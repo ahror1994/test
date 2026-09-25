@@ -80,6 +80,18 @@ export function tokenize(raw: string): string[] {
   return toCyrTokens(raw).map(stem);
 }
 
+/** Original query words paired with their search stems (same pipeline as `tokenize`). */
+function wordsWithStems(raw: string): { word: string; stem: string }[] {
+  return normalizeText(raw)
+    .split(/[\s-]+/)
+    .filter(Boolean)
+    .map((w) => {
+      const cyr = /[a-z]/.test(w) ? normalizeText(transliterate(w)) : w;
+      return { word: w, stem: stem(cyr.replace(/['‘ʻ]/g, '')) };
+    })
+    .filter((x) => x.stem);
+}
+
 // Word groups in RU / KY / KK / UZ (Latin and Cyrillic) + English + frequent misspellings.
 // The first word of every group is the canonical Russian term.
 const SYNONYM_GROUPS: string[][] = [
@@ -275,10 +287,11 @@ export function searchDocs(query: string, docs: IndexedDoc[], vocabulary?: Map<s
   }
   let corrected: string | null = null;
   if (direct.fuzzyWords.size && direct.hits.length) {
-    corrected = tokenize(query)
-      .map((t) => {
-        const fixed = direct.fuzzyWords.get(t);
-        return fixed ? (vocabulary?.get(fixed) ?? fixed) : t;
+    // Replace only the misspelled words; keep the user's other words as typed.
+    corrected = wordsWithStems(query)
+      .map(({ word, stem: s }) => {
+        const fixed = direct.fuzzyWords.get(s);
+        return fixed ? (vocabulary?.get(fixed) ?? fixed) : word;
       })
       .join(' ');
   }

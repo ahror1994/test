@@ -5,10 +5,12 @@ import { haptic } from '@/lib/haptics';
 import { DELIVERY_ICON } from '@/lib/quote';
 import { C, R } from '@/lib/theme';
 import { useT, type TKey } from '@/i18n';
-import { price, Txt } from './ui';
+import { price, Txt, useContentWidth } from './ui';
 
 export function DeliveryPicker({ g, onPick }: { g: QuoteGroup; onPick: (m: QuoteGroup['deliveryMethod']) => void }) {
   const t = useT();
+  // Two columns on wide screens; four narrow ones would truncate the method names.
+  const twoCols = useContentWidth() >= 600;
   return (
     <View style={s.wrap}>
       {g.deliveryOptions.map((o) => {
@@ -24,7 +26,7 @@ export function DeliveryPicker({ g, onPick }: { g: QuoteGroup; onPick: (m: Quote
             }}
             accessibilityRole="radio"
             accessibilityState={{ checked: on, disabled: !o.available }}
-            style={({ pressed }) => [s.opt, on && s.optOn, !o.available && { opacity: 0.45 }, pressed && { opacity: 0.8 }]}
+            style={({ pressed }) => [s.opt, { flexBasis: twoCols ? '40%' : '100%' }, on && s.optOn, !o.available && { opacity: 0.45 }, pressed && { opacity: 0.8 }]}
           >
             <View style={[s.icon, on && { backgroundColor: C.primary }]}>
               <Ionicons name={DELIVERY_ICON[o.method]} size={18} color={on ? C.white : C.primary} />
@@ -51,7 +53,7 @@ export function DeliveryPicker({ g, onPick }: { g: QuoteGroup; onPick: (m: Quote
 
 const s = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  opt: { flexGrow: 1, flexBasis: 220, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: R.lg, borderWidth: 2, borderColor: C.line, backgroundColor: C.white, minHeight: 60 },
+  opt: { flexGrow: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: R.lg, borderWidth: 2, borderColor: C.line, backgroundColor: C.white, minHeight: 60 },
   optOn: { borderColor: C.primary, backgroundColor: '#FAF9FF' },
   icon: { width: 36, height: 36, borderRadius: 12, backgroundColor: C.primarySoft, alignItems: 'center', justifyContent: 'center' },
 });

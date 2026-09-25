@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import { formatDate } from '@taptym/shared';
 import { AuthGate } from '@/components/auth-gate';
-import { Card, Divider, Empty, Header, price, Row, Screen, Section, Skeleton, Txt } from '@/components/ui';
+import { Card, Divider, Empty, ErrorState, Header, price, Row, Screen, Section, Skeleton, Txt } from '@/components/ui';
 import { useT, type TKey } from '@/i18n';
 import { useQuery } from '@/lib/api';
 import { C, gradient, R } from '@/lib/theme';
@@ -31,6 +31,13 @@ function CoinsInner() {
     ['✂️', t('coins_rule3')],
     ['🤝', t('coins_rule4', { n: d?.rules.referralBonusCoins ?? 100 })],
   ];
+  if (q.error && !d) {
+    return (
+      <Screen header={<Header title={t('coins')} />}>
+        <ErrorState error={q.error} onRetry={q.refresh} />
+      </Screen>
+    );
+  }
   return (
     <Screen header={<Header title={t('coins')} />} refreshing={q.refreshing} onRefresh={q.refresh}>
       <View style={[{ borderRadius: R.xxl, padding: 22, alignItems: 'center' }, gradient('linear-gradient(135deg, #FFD84D 0%, #FFB300 100%)', C.accent)]}>

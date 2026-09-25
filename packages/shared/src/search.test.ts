@@ -52,3 +52,11 @@ test('fixes wrong keyboard layout', () => {
 test('does not "correct" an exact word', () => {
   assert.equal(searchDocs('ручка', docs).correctedQuery, null);
 });
+
+test('correction keeps correctly typed words whole', () => {
+  const vocab = new Map<string, string>();
+  for (const w of ['ручка', 'шариковая', 'синяя', 'тетрадь', 'листов', 'клетка']) vocab.set(tokenize(w)[0], w);
+  const r = searchDocs('ручка шариковоя', docs, vocab);
+  assert.equal(r.hits[0]?.id, 1);
+  assert.equal(r.correctedQuery, 'ручка шариковая');
+});

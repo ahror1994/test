@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { Linking, View } from 'react-native';
 import { formatDateTime } from '@taptym/shared';
 import { AuthGate } from '@/components/auth-gate';
-import { Badge, BottomBar, Button, Card, Empty, Header, Row, Screen, Skeleton, Txt } from '@/components/ui';
+import { Badge, BottomBar, Button, Card, Empty, ErrorState, Header, Row, Screen, Skeleton, Txt } from '@/components/ui';
 import { useT } from '@/i18n';
 import { useQuery } from '@/lib/api';
 import { C, R } from '@/lib/theme';
@@ -44,7 +44,9 @@ function Inner() {
           {tg ? <Button title="Telegram" icon="paper-plane" v="secondary" size="md" onPress={() => Linking.openURL(`https://t.me/${tg.replace('@', '')}`)} style={{ flex: 1 }} /> : null}
         </Row>
       </Card>
-      {!q.data ? (
+      {q.error && !q.data ? (
+        <ErrorState error={q.error} onRetry={q.refresh} />
+      ) : !q.data ? (
         <Skeleton h={90} r={R.xl} />
       ) : q.data.length === 0 ? (
         <Empty emoji="💬" title={t('no_threads')} sub={t('describe_problem')} />

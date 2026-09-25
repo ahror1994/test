@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
-import { Button, Card, Header, Row, Screen, Skeleton, Txt } from '@/components/ui';
+import { Button, Card, ErrorState, Header, Row, Screen, Skeleton, Txt } from '@/components/ui';
 import { useT } from '@/i18n';
 import { addSchoolList } from '@/lib/actions';
 import { useQuery } from '@/lib/api';
@@ -27,7 +27,9 @@ export default function SchoolScreen() {
       <Txt v="body" color={C.muted} style={{ marginTop: 4, marginBottom: 16 }}>
         {t('school_sub')}
       </Txt>
-      {!q.data ? (
+      {q.error && !q.data ? (
+        <ErrorState error={q.error} onRetry={q.refresh} />
+      ) : !q.data ? (
         <Skeleton h={300} r={R.xxl} />
       ) : (
         <View style={{ gap: 14 }}>

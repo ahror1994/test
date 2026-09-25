@@ -6,7 +6,7 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from 'react-n
 import type { Order } from '@taptym/shared';
 import { Button, Card, ErrorState, Header, price, Row, Screen, Skeleton, Txt } from '@/components/ui';
 import { errorText, useT } from '@/i18n';
-import { api, API_URL, useQuery } from '@/lib/api';
+import { api, apiUrl, useQuery } from '@/lib/api';
 import { haptic } from '@/lib/haptics';
 import { toast, useApp } from '@/lib/store';
 import { C, R, shadow } from '@/lib/theme';
@@ -75,7 +75,7 @@ export default function PayScreen() {
               <Button
                 title={t('open_invoice')}
                 icon="open-outline"
-                onPress={() => Linking.openURL(`${API_URL}/api/c/orders/${o.id}/invoice?token=${token}`)}
+                onPress={() => Linking.openURL(`${apiUrl()}/api/c/orders/${o.id}/invoice?token=${token}`)}
                 style={{ marginTop: 16, alignSelf: 'stretch' }}
               />
             </>
@@ -116,7 +116,7 @@ export default function PayScreen() {
                     {t('card_hint')}
                   </Txt>
                   {pay ? (
-                    <Button title={t('pm_card')} icon="lock-closed" onPress={() => Linking.openURL(`${API_URL}/api/pay/${pay.id}`)} style={{ marginTop: 14, alignSelf: 'stretch' }} />
+                    <Button title={t('pm_card')} icon="lock-closed" onPress={() => Linking.openURL(`${apiUrl()}/api/pay/${pay.id}`)} style={{ marginTop: 14, alignSelf: 'stretch' }} />
                   ) : null}
                 </>
               )}

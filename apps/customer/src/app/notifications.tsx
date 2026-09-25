@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 import { formatDateTime, type NotificationItem } from '@taptym/shared';
 import { AuthGate } from '@/components/auth-gate';
-import { Card, Empty, Header, Row, Screen, Skeleton, Txt } from '@/components/ui';
+import { Card, Empty, ErrorState, Header, Row, Screen, Skeleton, Txt } from '@/components/ui';
 import { useT } from '@/i18n';
 import { api, useQuery } from '@/lib/api';
 import { useApp } from '@/lib/store';
@@ -37,7 +37,9 @@ function Inner() {
   };
   return (
     <Screen header={<Header title={t('notifications')} />} refreshing={q.refreshing} onRefresh={q.refresh}>
-      {!q.data ? (
+      {q.error && !q.data ? (
+        <ErrorState error={q.error} onRetry={q.refresh} />
+      ) : !q.data ? (
         <View style={{ gap: 10 }}>
           <Skeleton h={80} r={R.xl} />
           <Skeleton h={80} r={R.xl} />

@@ -4,9 +4,11 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ServerSheetHost } from '@/components/server-sheet';
 import { Empty, ToastHost } from '@/components/ui';
 import { useT } from '@/i18n';
 import { refreshMe } from '@/lib/actions';
+import { useServer } from '@/lib/server';
 import { useApp } from '@/lib/store';
 import { C } from '@/lib/theme';
 
@@ -22,7 +24,9 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
 }
 
 export default function RootLayout() {
-  const hydrated = useApp((s) => s.hydrated);
+  const storeReady = useApp((s) => s.hydrated);
+  const serverReady = useServer((s) => s.ready);
+  const hydrated = storeReady && serverReady;
   const lang = useApp((s) => s.lang);
 
   useEffect(() => {
@@ -52,6 +56,7 @@ export default function RootLayout() {
         <Stack.Screen name="success/[id]" options={{ animation: 'fade', gestureEnabled: false }} />
       </Stack>
       <ToastHost />
+      <ServerSheetHost />
     </GestureHandlerRootView>
   );
 }

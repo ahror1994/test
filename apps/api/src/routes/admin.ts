@@ -8,6 +8,7 @@ import { activeServices, breakdown, supplierBalance } from '../services/finance.
 import { invalidateCatalog, reviewRow, supplierPublic } from '../services/catalog.ts';
 import { listNotifications, markRead, notify, unreadCount } from '../services/notify.ts';
 import { sendPayout } from '../integrations.ts';
+import { tr, userLang } from '../services/texts.ts';
 import { bannerRow } from './customer.ts';
 import { addMessage, messageRow, threadRow } from './threads.ts';
 
@@ -336,7 +337,10 @@ admin.patch('/customers/:id', requirePerm('customers'), async (c) => {
   if (b.coinsDelta) {
     run('UPDATE users SET coins = MAX(0, coins + ?) WHERE id = ?', Math.round(b.coinsDelta), id);
     run('INSERT INTO coin_tx(user_id, amount, reason, created_at) VALUES(?,?,?,?)', id, Math.round(b.coinsDelta), b.reason || 'admin_bonus', nowIso());
-    if (b.coinsDelta > 0) notify('customer', id, `+${b.coinsDelta} монет`, b.reason || 'Подарок от Taptym', '/coins');
+    if (b.coinsDelta > 0) {
+      const lang = userLang(id);
+      notify('customer', id, tr(lang, 'coinsTitle', { c: b.coinsDelta }), b.reason || tr(lang, 'giftBody'), '/coins');
+    }
   }
   return c.json({ ok: true });
 });
@@ -642,7 +646,7 @@ admin.post('/support/threads/:id/messages', requirePerm('support'), async (c) =>
   if (!b.text?.trim()) throw new ApiError(400, 'text_required');
   addMessage(t.id, 'operator', c.get('adminName'), b.text.trim());
   run('UPDATE threads SET unread_operator = 0 WHERE id = ?', t.id);
-  if (t.user_id) notify('customer', t.user_id, 'Ответ поддержки', b.text.slice(0, 120), `/support/${t.id}`);
+  if (t.user_id) notify('customer', t.user_id, tr(userLang(t.user_id), 'supportReply'), b.text.slice(0, 120), `/support/${t.id}`);
   if (t.supplier_id) notify('supplier', t.supplier_id, 'Ответ поддержки', b.text.slice(0, 120), `/support/${t.id}`);
   return c.json({ ok: true });
 });

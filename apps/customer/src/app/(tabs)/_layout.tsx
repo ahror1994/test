@@ -8,9 +8,10 @@ import { cartCount, useApp } from '@/lib/store';
 import { C } from '@/lib/theme';
 import type { IconName } from '@/components/ui';
 
-const icon =
-  (on: IconName, off: IconName) =>
-  ({ focused, color }: { focused: boolean; color: ColorValue }) => <Ionicons name={focused ? on : off} size={24} color={color as string} />;
+const icon = (on: IconName, off: IconName) => {
+  const TabIcon = ({ focused, color }: { focused: boolean; color: ColorValue }) => <Ionicons name={focused ? on : off} size={24} color={color as string} />;
+  return TabIcon;
+};
 
 export default function TabsLayout() {
   const t = useT();

@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { formatDate, type Offer, type ProductDetail } from '@taptym/shared';
-import { ProductRow, StoreAvatar, Thumb } from '@/components/product';
+import { FromPrice, ProductRow, StoreAvatar } from '@/components/product';
 import { Badge, BottomBar, Button, Card, ErrorState, Header, Row, Screen, Section, Skeleton, Stars, Stepper, Txt, price, useContentWidth } from '@/components/ui';
 import { errorText, useT } from '@/i18n';
 import { requireAuth } from '@/lib/actions';
@@ -113,7 +113,7 @@ export default function ProductScreen() {
       </Row>
       <View style={s.priceCard}>
         <Row gap={10} style={{ alignItems: 'baseline' }} wrap>
-          <Txt v="display">{t('from_price', { p: price(p.minPrice) })}</Txt>
+          <FromPrice value={p.minPrice} big />
           {p.oldPrice && p.oldPrice > p.minPrice ? (
             <Txt v="h3" style={{ textDecorationLine: 'line-through', color: C.faint, fontWeight: '600' }}>
               {price(p.oldPrice)}

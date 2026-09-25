@@ -19,6 +19,7 @@ import { getSettings } from '../settings.ts';
 import { bankDeepLinks, createPayment, fiscalizeReceipt, qrDataUrl, yandexCreateClaim } from '../integrations.ts';
 import { supplierPublic, invalidateCatalog } from './catalog.ts';
 import { notify } from './notify.ts';
+import { statusWord, tr, userLang } from './texts.ts';
 import { supplierBalance } from './finance.ts';
 
 export class ApiError extends Error {
@@ -108,7 +109,7 @@ export interface QuoteInternal extends CheckoutQuote {
   address: { line: string; lat: number; lng: number } | null;
 }
 
-export async function buildQuote(userId: number | null, req: Partial<CheckoutRequest>): Promise<QuoteInternal> {
+export async function buildQuote(userId: number | null, req: Partial<CheckoutRequest>, withAlternative = true): Promise<QuoteInternal> {
   const settings = getSettings();
   const loaded = loadLines(req.lines ?? []);
   const address =
@@ -240,8 +241,8 @@ export async function buildQuote(userId: number | null, req: Partial<CheckoutReq
 
   // Savings vs most expensive offers, plus a cheaper swap suggestion
   let savingsVsMax = 0;
-  let altSaving = 0;
   const altLines: CartLine[] = [];
+  let altDiffers = false;
   for (const { line, row } of loaded) {
     const offers = all<any>(
       `SELECT o.id, o.price, o.stock FROM offers o JOIN suppliers s ON s.id = o.supplier_id AND s.status = 'active'
@@ -252,9 +253,19 @@ export async function buildQuote(userId: number | null, req: Partial<CheckoutReq
     savingsVsMax += (max - row.price) * line.qty;
     const cheapest = offers.filter((o) => o.stock >= line.qty).sort((a, b) => a.price - b.price)[0];
     if (cheapest && cheapest.price < row.price) {
-      altSaving += (row.price - cheapest.price) * line.qty;
+      altDiffers = true;
       altLines.push({ offerId: cheapest.id, qty: line.qty });
     } else altLines.push(line);
+  }
+  // Compare full totals (items + delivery): switching stores also changes delivery fees.
+  let cheaperAlternative: CheckoutQuote['cheaperAlternative'] = null;
+  if (withAlternative && altDiffers) {
+    const merged = new Map<number, number>();
+    for (const l of altLines) merged.set(l.offerId, (merged.get(l.offerId) ?? 0) + l.qty);
+    const lines = [...merged].map(([offerId, qty]) => ({ offerId, qty }));
+    const alt = await buildQuote(userId, { lines, addressId: req.addressId, groups: req.groups }, false);
+    const saving = itemsTotal + deliveryTotal - (alt.itemsTotal + alt.deliveryTotal);
+    if (saving > 0) cheaperAlternative = { saving, lines };
   }
 
   const cashAllowed = groups.every((g) => {
@@ -276,7 +287,7 @@ export async function buildQuote(userId: number | null, req: Partial<CheckoutReq
     total,
     coinsToEarn: coinsEarned(settings, Math.max(0, itemsTotal - promoDiscount - coinsMoney)),
     savingsVsMax,
-    cheaperAlternative: altSaving > 0 ? { saving: altSaving, lines: altLines } : null,
+    cheaperAlternative,
     cashAllowed,
     freeFirstDelivery: meta.some((m) => m.platformPaidDelivery > 0),
     isFirstOrder: first,
@@ -424,7 +435,8 @@ export async function markPaid(orderId: number, source: string) {
   if (o.payment_status === 'paid') return;
   run("UPDATE orders SET payment_status = 'paid' WHERE id = ?", orderId);
   run("UPDATE payments SET status = 'paid', paid_at = ? WHERE order_id = ? AND status = 'pending'", nowIso(), orderId);
-  notify('customer', o.user_id, 'Оплата получена', `Заказ ${o.number} оплачен. Мы передали его поставщикам.`, `/orders/${orderId}`);
+  const lang = userLang(o.user_id);
+  notify('customer', o.user_id, tr(lang, 'paidTitle'), tr(lang, 'paidBody', { n: o.number }), `/orders/${orderId}`);
   const items = all<any>('SELECT oi.* FROM order_items oi JOIN sub_orders s ON s.id = oi.sub_order_id WHERE s.order_id = ?', orderId);
   void fiscalizeReceipt(o.number, items.map((i) => ({ title: i.title, price: i.price, qty: i.qty })), o.total);
   if (o.payment_status !== 'awaiting_invoice') announceOrder(orderId);
@@ -486,7 +498,14 @@ export async function changeSubOrderStatus(subId: number, next: SubOrderStatus, 
     void yandexCreateClaim(subId, { order: o.number, address: o.address });
   }
   const sup = get<any>('SELECT name FROM suppliers WHERE id = ?', s.supplier_id);
-  notify('customer', o.user_id, `Заказ ${o.number} ${STATUS_TEXT[next]}`, `${sup?.name ?? ''}${reason ? ': ' + reason : ''}`, `/orders/${o.id}`);
+  const lang = userLang(o.user_id);
+  notify(
+    'customer',
+    o.user_id,
+    tr(lang, 'orderStatus', { n: o.number, status: statusWord(lang, next) }),
+    `${sup?.name ?? ''}${reason ? ': ' + reason : ''}`,
+    `/orders/${o.id}`,
+  );
   if (next === 'rejected' || next === 'cancelled') {
     notify('admin', null, `Заказ ${o.number}: ${STATUS_TEXT[next]}`, `${sup?.name ?? ''} ${reason}`.trim(), `/orders/${o.id}`);
   }
@@ -540,14 +559,16 @@ function refreshOrderStatus(orderId: number) {
       run('UPDATE orders SET coins_earned = ? WHERE id = ?', coins, orderId);
       run('UPDATE users SET coins = coins + ? WHERE id = ?', coins, o.user_id);
       run('INSERT INTO coin_tx(user_id, amount, reason, order_id, created_at) VALUES(?,?,?,?,?)', o.user_id, coins, 'cashback', orderId, now);
-      notify('customer', o.user_id, `+${coins} монет`, `Кешбэк за заказ ${o.number}. Тратьте на следующие покупки.`, '/coins');
+      const lang = userLang(o.user_id);
+      notify('customer', o.user_id, tr(lang, 'coinsTitle', { c: coins }), tr(lang, 'cashbackBody', { n: o.number }), '/coins');
     }
     const u = get<any>('SELECT * FROM users WHERE id = ?', o.user_id);
     if (u.referred_by && !u.referral_rewarded) {
       run('UPDATE users SET referral_rewarded = 1, coins = coins WHERE id = ?', u.id);
       run('UPDATE users SET coins = coins + ? WHERE id = ?', settings.referralBonusCoins, u.referred_by);
       run('INSERT INTO coin_tx(user_id, amount, reason, order_id, created_at) VALUES(?,?,?,?,?)', u.referred_by, settings.referralBonusCoins, 'referral', orderId, now);
-      notify('customer', u.referred_by, `+${settings.referralBonusCoins} монет за друга`, 'Ваш друг сделал первый заказ.', '/coins');
+      const refLang = userLang(u.referred_by);
+      notify('customer', u.referred_by, tr(refLang, 'referralTitle', { c: settings.referralBonusCoins }), tr(refLang, 'referralBody'), '/coins');
     }
   }
 }

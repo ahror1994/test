@@ -5,10 +5,12 @@ import { useState } from 'react';
 import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { formatPhone, type CustomerProfile } from '@taptym/shared';
 import { LangPicker } from '@/components/lang-picker';
+import { ServerRow } from '@/components/server-sheet';
 import { Badge, Button, Card, Divider, Field, ListItem, price, Row, Screen, Section, TabTitle, Txt } from '@/components/ui';
 import { errorText, useT } from '@/i18n';
 import { api, useQuery } from '@/lib/api';
 import { haptic } from '@/lib/haptics';
+import { openServerSheet, SERVER_EDITABLE, useServer } from '@/lib/server';
 import { toast, useApp } from '@/lib/store';
 import { C, gradient, R, shadow } from '@/lib/theme';
 
@@ -19,6 +21,7 @@ export default function ProfileScreen() {
   const token = useApp((s) => s.token);
   const profile = useApp((s) => s.profile);
   const unread = useApp((s) => s.unread);
+  const server = useServer((s) => s.url);
   const coins = useQuery<Coins>('/coins', { auth: true, refetchOnFocus: true });
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
@@ -40,6 +43,7 @@ export default function ProfileScreen() {
         <Section title={t('language')}>
           <LangPicker />
         </Section>
+        <ServerRow style={{ marginTop: 24 }} />
         <Txt v="small" center style={{ marginTop: 30 }}>
           {t('app_version')}
         </Txt>
@@ -178,6 +182,12 @@ export default function ProfileScreen() {
         <ListItem icon="chatbubbles" iconBg={C.successSoft} iconColor={C.successInk} title={t('support')} sub={t('support_sub')} onPress={() => router.push('/support')} />
         <Divider style={{ marginLeft: 70 }} />
         <ListItem icon="business" iconBg="#E7F0FF" iconColor="#1D5FD1" title={t('company')} sub={t('company_sub')} onPress={() => router.push('/company')} />
+        {SERVER_EDITABLE ? (
+          <>
+            <Divider style={{ marginLeft: 70 }} />
+            <ListItem icon="server-outline" iconBg={C.surface} iconColor={C.ink} title={t('server')} sub={server || t('server_not_set')} onPress={openServerSheet} />
+          </>
+        ) : null}
       </Card>
 
       <Section title={t('language')}>

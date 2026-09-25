@@ -8,7 +8,7 @@ import { StoreAvatar, Thumb } from '@/components/product';
 import { Button, Card, Divider, ErrorState, Header, price, Row, Screen, Section, Skeleton, Txt } from '@/components/ui';
 import { errorText, useT, type TKey } from '@/i18n';
 import { addLines } from '@/lib/actions';
-import { api, API_URL, useQuery } from '@/lib/api';
+import { api, apiUrl, useQuery } from '@/lib/api';
 import { DELIVERY_ICON } from '@/lib/quote';
 import { toast, useApp } from '@/lib/store';
 import { C, R } from '@/lib/theme';
@@ -122,7 +122,7 @@ export default function OrderScreen() {
         </Row>
         {needsPay && o.status !== 'cancelled' ? (
           o.paymentMethod === 'invoice' ? (
-            <Button title={t('open_invoice')} icon="document-text" onPress={() => Linking.openURL(`${API_URL}/api/c/orders/${o.id}/invoice?token=${token}`)} />
+            <Button title={t('open_invoice')} icon="document-text" onPress={() => Linking.openURL(`${apiUrl()}/api/c/orders/${o.id}/invoice?token=${token}`)} />
           ) : (
             <Button title={`${t('pay_now')} ${price(o.total)}`} icon="qr-code" onPress={() => router.push(`/pay/${o.id}`)} />
           )

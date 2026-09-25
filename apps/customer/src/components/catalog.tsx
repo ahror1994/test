@@ -3,16 +3,19 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { ProductCard } from '@taptym/shared';
 import { api, type ApiError } from '@/lib/api';
+import { useServer } from '@/lib/server';
 import { C, R } from '@/lib/theme';
 import { useT, type TKey } from '@/i18n';
 import { GridSkeleton, ProductGrid } from './product';
 import { Button, Chip, Empty, ErrorState, Field, Row, Sheet, Toggle, Txt } from './ui';
 
-export type Sort = 'popular' | 'price_asc' | 'price_desc' | 'rating' | 'savings' | 'new';
+/** `relevance` = no `sort` param, so the API ranks text matches by score. */
+export type Sort = 'relevance' | 'popular' | 'price_asc' | 'price_desc' | 'rating' | 'savings' | 'new';
 export type Filters = { minPrice: string; maxPrice: string; inStock: boolean; deals: boolean };
 export const emptyFilters: Filters = { minPrice: '', maxPrice: '', inStock: false, deals: false };
 
 const SORTS: { id: Sort; key: TKey }[] = [
+  { id: 'relevance', key: 'sort_relevance' },
   { id: 'popular', key: 'sort_popular' },
   { id: 'price_asc', key: 'sort_price_asc' },
   { id: 'savings', key: 'sort_savings' },
@@ -33,9 +36,10 @@ export function useCatalog(base: Record<string, string | undefined>, sort: Sort,
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const seq = useRef(0);
+  const server = useServer((s) => s.url);
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(base)) if (v) qs.set(k, v);
-  qs.set('sort', sort);
+  if (sort !== 'relevance') qs.set('sort', sort);
   if (f.minPrice) qs.set('minPrice', f.minPrice);
   if (f.maxPrice) qs.set('maxPrice', f.maxPrice);
   if (f.inStock) qs.set('inStock', '1');
@@ -66,7 +70,7 @@ export function useCatalog(base: Record<string, string | undefined>, sort: Sort,
     setMeta(null);
     load(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, enabled]);
+  }, [key, enabled, server]);
 
   return {
     items,
@@ -83,7 +87,19 @@ export function activeFilterCount(f: Filters) {
   return (f.minPrice ? 1 : 0) + (f.maxPrice ? 1 : 0) + (f.inStock ? 1 : 0) + (f.deals ? 1 : 0);
 }
 
-export function SortChips({ sort, onSort, filters, onFilters }: { sort: Sort; onSort: (s: Sort) => void; filters: Filters; onFilters: () => void }) {
+export function SortChips({
+  sort,
+  onSort,
+  filters,
+  onFilters,
+  relevance,
+}: {
+  sort: Sort;
+  onSort: (s: Sort) => void;
+  filters: Filters;
+  onFilters: () => void;
+  relevance?: boolean;
+}) {
   const t = useT();
   const n = activeFilterCount(filters);
   return (
@@ -97,7 +113,7 @@ export function SortChips({ sort, onSort, filters, onFilters }: { sort: Sort; on
           </View>
         ) : null}
       </Pressable>
-      {SORTS.map((x) => (
+      {SORTS.filter((x) => relevance || x.id !== 'relevance').map((x) => (
         <Chip key={x.id} label={t(x.key)} selected={sort === x.id} onPress={() => onSort(x.id)} />
       ))}
     </ScrollView>
@@ -214,13 +230,14 @@ export function CatalogBlock({
   enabled?: boolean;
 }) {
   const t = useT();
-  const [sort, setSort] = useState<Sort>(initialSort);
+  const ranked = !!base.q;
+  const [sort, setSort] = useState<Sort>(initialSort === 'relevance' && !ranked ? 'popular' : initialSort);
   const [filters, setFilters] = useState<Filters>(initialFilters);
   const [sheet, setSheet] = useState(false);
   const c = useCatalog(base, sort, filters, enabled);
   return (
     <View>
-      <SortChips sort={sort} onSort={setSort} filters={filters} onFilters={() => setSheet(true)} />
+      <SortChips sort={sort} onSort={setSort} filters={filters} onFilters={() => setSheet(true)} relevance={ranked} />
       {header ? header(c.meta) : null}
       <View style={{ marginTop: 14 }}>
         {c.error && !c.items.length ? (

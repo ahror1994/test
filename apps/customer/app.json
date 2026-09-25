@@ -50,6 +50,14 @@
         {
           "locationWhenInUsePermission": "Taptym использует геолокацию, чтобы привезти заказ по вашему адресу."
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
       ]
     ],
     "experiments": {

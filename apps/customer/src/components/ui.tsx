@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatPrice } from '@taptym/shared';
 import { C, MAX_W, R, shadow } from '@/lib/theme';
 import { haptic } from '@/lib/haptics';
+import { openServerSheet, SERVER_EDITABLE, useServer } from '@/lib/server';
 import { useToast } from '@/lib/store';
 import { errorText, useT } from '@/i18n';
 
@@ -483,7 +484,25 @@ export function Skeleton({ w, h, r = R.md, style }: { w?: number | `${number}%`;
   return <Animated.View style={[{ width: w ?? '100%', height: h, borderRadius: r, backgroundColor: '#E6E8F0', opacity: a }, style]} />;
 }
 
-export function Empty({ emoji, title, sub, action, onAction, icon }: { emoji: string; title: string; sub?: string; action?: string; onAction?: () => void; icon?: IconName }) {
+export function Empty({
+  emoji,
+  title,
+  sub,
+  action,
+  onAction,
+  icon,
+  loading,
+  children,
+}: {
+  emoji: string;
+  title: string;
+  sub?: string;
+  action?: string;
+  onAction?: () => void;
+  icon?: IconName;
+  loading?: boolean;
+  children?: ReactNode;
+}) {
   return (
     <View style={{ alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24, gap: 10 }}>
       <View style={styles.emptyCircle}>
@@ -497,14 +516,54 @@ export function Empty({ emoji, title, sub, action, onAction, icon }: { emoji: st
           {sub}
         </Txt>
       ) : null}
-      {action && onAction ? <Button title={action} onPress={onAction} icon={icon} style={{ marginTop: 10, minWidth: 220 }} /> : null}
+      {action && onAction ? <Button title={action} onPress={onAction} icon={icon} loading={loading} style={{ marginTop: 10, minWidth: 220 }} /> : null}
+      {children}
     </View>
   );
 }
 
-export function ErrorState({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+/** Load failure with retry; a network failure explains how to reach the computer acting as the server. */
+export function ErrorState({ error, onRetry }: { error: unknown; onRetry: () => unknown }) {
   const t = useT();
-  return <Empty emoji="😕" title={t('error_title')} sub={errorText(error)} action={t('retry')} icon="refresh" onAction={onRetry} />;
+  const url = useServer((s) => s.url);
+  const [busy, setBusy] = useState(false);
+  const offline = (error as { code?: string } | null)?.code === 'network';
+  const retry = async () => {
+    setBusy(true);
+    try {
+      // A failure can be instant; keep the spinner long enough to read as "tried again".
+      await Promise.all([Promise.resolve(onRetry()).catch(() => {}), new Promise((r) => setTimeout(r, 500))]);
+    } finally {
+      setBusy(false);
+    }
+  };
+  if (!offline) {
+    return <Empty emoji="😕" title={t('error_title')} sub={errorText(error)} action={t('retry')} icon="refresh" onAction={retry} loading={busy} />;
+  }
+  return (
+    <Empty emoji="📡" title={t('offline_title')} sub={t('offline_sub')} action={t('retry')} icon="refresh" onAction={retry} loading={busy}>
+      {SERVER_EDITABLE ? (
+        <Pressable
+          onPress={() => {
+            haptic.tap();
+            openServerSheet();
+          }}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.serverLink, pressed && { opacity: 0.6 }]}
+        >
+          <Ionicons name="server-outline" size={20} color={C.primary} />
+          <View style={{ flexShrink: 1 }}>
+            <Txt v="bodyBold" color={C.primary}>
+              {t('server_settings')}
+            </Txt>
+            <Txt v="small" lines={1}>
+              {url || t('server_not_set')}
+            </Txt>
+          </View>
+        </Pressable>
+      ) : null}
+    </Empty>
+  );
 }
 
 /** Modals cover the root host, so an open Sheet renders its own host and the root one steps aside. */
@@ -663,6 +722,7 @@ export const styles = StyleSheet.create({
   field: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.white, borderRadius: R.lg, borderWidth: 1.5, borderColor: C.line, paddingHorizontal: 14, minHeight: 54 },
   fieldInput: { flex: 1, fontSize: 16, fontWeight: '600', color: C.ink, paddingVertical: 12, minWidth: 0, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {}) },
   emptyCircle: { width: 104, height: 104, borderRadius: 52, backgroundColor: C.white, alignItems: 'center', justifyContent: 'center', marginBottom: 8, ...shadow.md },
+  serverLink: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6, minHeight: 48, paddingHorizontal: 16, borderRadius: R.lg, backgroundColor: C.primarySoft, maxWidth: '100%' },
   toast: { backgroundColor: 'rgba(15,18,34,0.94)', borderRadius: R.lg, paddingHorizontal: 18, paddingVertical: 14, maxWidth: 520, marginHorizontal: 16, ...shadow.lg },
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(15,18,34,0.45)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: C.bg, borderTopLeftRadius: R.xxl, borderTopRightRadius: R.xxl, width: '100%', maxWidth: 640, alignSelf: 'center' },

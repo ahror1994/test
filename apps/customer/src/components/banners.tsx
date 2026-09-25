@@ -7,6 +7,8 @@ import { useT } from '@/i18n';
 
 export function BannerCard({ b, width, height = 156 }: { b: Banner; width: number; height?: number }) {
   const t = useT();
+  // Titles that would not fit two lines at full size get a third line and a smaller font.
+  const long = height >= 150 && b.title.length > (width - 130) / 9;
   return (
     <Pressable
       onPress={() => openBannerLink(b.link)}
@@ -22,10 +24,10 @@ export function BannerCard({ b, width, height = 156 }: { b: Banner; width: numbe
       <View style={s.bubble} />
       <View style={[s.bubble, { right: -10, top: 70, width: 90, height: 90, opacity: 0.1 }]} />
       <View style={{ flex: 1, paddingRight: 90, justifyContent: 'center', gap: 6 }}>
-        <Text style={[s.title, { color: b.textColor || '#fff' }]} numberOfLines={2}>
+        <Text style={[s.title, long && s.titleLong, { color: b.textColor || '#fff' }]} numberOfLines={long ? 3 : 2}>
           {b.title}
         </Text>
-        <Text style={[s.sub, { color: b.textColor || '#fff' }]} numberOfLines={3}>
+        <Text style={[s.sub, { color: b.textColor || '#fff' }]} numberOfLines={long ? 2 : 3}>
           {b.subtitle}
         </Text>
       </View>
@@ -119,6 +121,7 @@ const s = StyleSheet.create({
   banner: { borderRadius: R.xxl, padding: 20, overflow: 'hidden', flexDirection: 'row' },
   bubble: { position: 'absolute', right: 30, top: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: '#fff', opacity: 0.12 },
   title: { fontSize: 21, lineHeight: 25, fontWeight: '800', letterSpacing: -0.5 },
+  titleLong: { fontSize: 19, lineHeight: 23 },
   sub: { fontSize: 13, lineHeight: 18, fontWeight: '600', opacity: 0.9 },
   emoji: { position: 'absolute', right: 18, bottom: 16, fontSize: 64 },
   ad: { position: 'absolute', right: 12, top: 12, backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: R.pill, paddingHorizontal: 8, paddingVertical: 2 },

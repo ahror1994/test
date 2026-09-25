@@ -119,3 +119,16 @@ test('seeded ledger is consistent with delivered sub-orders', () => {
   const rows = all<any>("SELECT COUNT(*) AS n FROM sub_orders WHERE status = 'delivered' AND settled = 0");
   assert.equal(rows[0].n, 0);
 });
+
+test('cheaper alternative compares full totals including delivery', async () => {
+  const p = get<any>(
+    `SELECT product_id FROM offers WHERE active = 1 AND stock >= 2 GROUP BY product_id HAVING COUNT(*) >= 2 AND MIN(price) < MAX(price) LIMIT 1`,
+  );
+  const expensive = get<any>('SELECT * FROM offers WHERE product_id = ? AND stock >= 2 ORDER BY price DESC LIMIT 1', p.product_id);
+  const cheapest = get<any>('SELECT * FROM offers WHERE product_id = ? AND stock >= 2 ORDER BY price LIMIT 1', p.product_id);
+  const q = await buildQuote(userId, { lines: [{ offerId: expensive.id, qty: 2 }], addressId });
+  const alt = await buildQuote(userId, { lines: [{ offerId: cheapest.id, qty: 2 }], addressId });
+  const diff = q.itemsTotal + q.deliveryTotal - (alt.itemsTotal + alt.deliveryTotal);
+  if (diff > 0) assert.equal(q.cheaperAlternative?.saving, diff);
+  else assert.equal(q.cheaperAlternative, null);
+});

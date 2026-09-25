@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CheckoutQuote, CheckoutRequest, DeliveryMethod } from '@taptym/shared';
+import { errorText } from '@/i18n';
 import { api, type ApiError } from './api';
-import { useApp } from './store';
+import { useServer } from './server';
+import { toast, useApp } from './store';
 
 export function quoteRequest(): Partial<CheckoutRequest> {
   const s = useApp.getState();
@@ -23,11 +25,16 @@ export function useQuote() {
   const useCoins = useApp((s) => s.useCoins);
   const addressId = useApp((s) => s.addressId);
   const token = useApp((s) => s.token);
+  const server = useServer((s) => s.url);
   const [quote, setQuote] = useState<CheckoutQuote | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const seq = useRef(0);
-  const key = JSON.stringify([cart, delivery, promo, useCoins, addressId, token]);
+  const shown = useRef(false);
+  useEffect(() => {
+    shown.current = quote != null;
+  }, [quote]);
+  const key = JSON.stringify([cart, delivery, promo, useCoins, addressId, token, server]);
 
   const run = async () => {
     const id = ++seq.current;
@@ -43,7 +50,10 @@ export function useQuote() {
       setQuote(q);
       setError(null);
     } catch (e) {
-      if (id === seq.current) setError(e as ApiError);
+      if (id !== seq.current) return;
+      setError(e as ApiError);
+      // The previous totals stay on screen; tell the user they were not recalculated.
+      if (shown.current) toast(errorText(e), 'error');
     } finally {
       if (id === seq.current) setLoading(false);
     }
@@ -52,7 +62,6 @@ export function useQuote() {
   useEffect(() => {
     const h = setTimeout(run, 120);
     return () => clearTimeout(h);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   return { quote, loading, error, refresh: run };

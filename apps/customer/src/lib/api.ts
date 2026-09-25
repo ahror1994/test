@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { useApp } from './store';
+import { errorText } from '@/i18n';
+import { serverReady, serverUrl, useServer } from './server';
+import { toast, useApp } from './store';
 
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/$/, '');
+/** Current server base URL (`''` on web = same origin). Changeable at runtime on native. */
+export const apiUrl = serverUrl;
 
 /** Uploaded files come back as relative `/uploads/...` paths. */
 export function img(u?: string | null): string | null {
   if (!u) return null;
-  return u.startsWith('/') ? API_URL + u : u;
+  return u.startsWith('/') ? serverUrl() + u : u;
 }
 
 export class ApiError extends Error {
@@ -22,7 +25,12 @@ export class ApiError extends Error {
 
 type Opts = { method?: string; body?: unknown; form?: FormData };
 
+// RN's Android HTTP client has no timeouts of its own, so an unreachable LAN host would spin forever.
+const TIMEOUT_MS = 12_000;
+const UPLOAD_TIMEOUT_MS = 90_000;
+
 export async function api<T = any>(path: string, opts: Opts = {}): Promise<T> {
+  await serverReady();
   const token = useApp.getState().token;
   const headers: Record<string, string> = { accept: 'application/json' };
   if (token) headers.authorization = `Bearer ${token}`;
@@ -33,12 +41,23 @@ export async function api<T = any>(path: string, opts: Opts = {}): Promise<T> {
     body = JSON.stringify(opts.body);
   }
   let res: Response;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), opts.form ? UPLOAD_TIMEOUT_MS : TIMEOUT_MS);
   try {
-    res = await fetch(`${API_URL}/api/c${path}`, { method: opts.method ?? (body ? 'POST' : 'GET'), headers, body });
+    res = await fetch(`${serverUrl()}/api/c${path}`, { method: opts.method ?? (body ? 'POST' : 'GET'), headers, body, signal: ctrl.signal });
   } catch {
+    clearTimeout(timer);
     throw new ApiError('network', 0);
   }
-  const data = await res.json().catch(() => null);
+  let data: any = null;
+  try {
+    data = await res.json();
+  } catch {
+    // A body cut off by the timeout is a connection problem, not an empty answer.
+    if (ctrl.signal.aborted) throw new ApiError('network', 0);
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) {
     const code = (data && data.error) || 'server';
     if (res.status === 401 && token) useApp.getState().logout();
@@ -64,11 +83,16 @@ type QueryOpts = { refetchOnFocus?: boolean; interval?: number; auth?: boolean }
 /** Minimal data hook: initial load, pull-to-refresh, silent refetch on focus / interval. */
 export function useQuery<T>(path: string | null, opts: QueryOpts = {}) {
   const token = useApp((s) => s.token);
+  const server = useServer((s) => s.url);
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [loading, setLoading] = useState(!!path);
   const [refreshing, setRefreshing] = useState(false);
   const seq = useRef(0);
+  const hasData = useRef(false);
+  useEffect(() => {
+    hasData.current = data != null;
+  }, [data]);
   const needsAuth = !!opts.auth;
   const blocked = !path || (needsAuth && !token);
 
@@ -86,6 +110,8 @@ export function useQuery<T>(path: string | null, opts: QueryOpts = {}) {
       } catch (e) {
         if (id !== seq.current) return;
         if (mode !== 'silent') setError(e as ApiError);
+        // With data already on screen the error view stays hidden, so a failed pull-to-refresh needs a toast.
+        if (mode === 'refresh' && hasData.current) toast(errorText(e), 'error');
       } finally {
         if (id === seq.current) {
           setLoading(false);
@@ -103,7 +129,7 @@ export function useQuery<T>(path: string | null, opts: QueryOpts = {}) {
       return;
     }
     load('initial');
-  }, [load, blocked, token, needsAuth]);
+  }, [load, blocked, token, needsAuth, server]);
 
   const firstFocus = useRef(true);
   const refetchOnFocus = !!opts.refetchOnFocus;

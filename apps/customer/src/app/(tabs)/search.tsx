@@ -25,7 +25,7 @@ export default function SearchScreen() {
   const input = useRef<TextInput>(null);
   const [text, setText] = useState(params.q ?? '');
   const [query, setQuery] = useState<string | null>(params.q ?? (params.deals || params.all ? '' : null));
-  const [browse, setBrowse] = useState({ deals: params.deals === '1', sort: (params.sort as Sort) || 'popular', nonce: 0 });
+  const [browse, setBrowse] = useState({ deals: params.deals === '1', sort: (params.sort as Sort) || (params.q ? 'relevance' : 'popular'), nonce: 0 });
   const [sugg, setSugg] = useState<Suggest | null>(null);
   const recent = useApp((s) => s.recent);
   const pushRecent = useApp((s) => s.pushRecent);
@@ -50,6 +50,7 @@ export default function SearchScreen() {
     if (params.q) {
       setText(params.q);
       setQuery(params.q);
+      setBrowse((b) => ({ deals: false, sort: 'relevance', nonce: b.nonce + 1 }));
     }
   }, [params.q]);
 
@@ -72,7 +73,7 @@ export default function SearchScreen() {
     input.current?.blur();
     setText(v);
     setQuery(v);
-    setBrowse((b) => ({ ...b, deals: false, sort: 'popular', nonce: b.nonce + 1 }));
+    setBrowse((b) => ({ ...b, deals: false, sort: 'relevance', nonce: b.nonce + 1 }));
     pushRecent(v);
   };
 

@@ -10,6 +10,20 @@ import { C, gridColumns, R, shadow } from '@/lib/theme';
 import { useT } from '@/i18n';
 import { Badge, price, Row, Skeleton, Txt, useContentWidth } from './ui';
 
+/** «от 57 сом» / «57 сом бастап»: the price stays big and the word around it is small, so ky/uz/kk fit one line. */
+export function FromPrice({ value, big }: { value: number; big?: boolean }) {
+  const t = useT();
+  const [before, after] = t('from_price', { p: '\u0001' }).split('\u0001');
+  const small = { fontSize: big ? 18 : 12, lineHeight: big ? 22 : 16, fontWeight: '700' as const, letterSpacing: 0 };
+  return (
+    <Txt v={big ? 'display' : 'price'}>
+      {before ? <Text style={small}>{before}</Text> : null}
+      {price(value)}
+      {after ? <Text style={small}>{after}</Text> : null}
+    </Txt>
+  );
+}
+
 /** Product photo if present, otherwise the emoji on its pastel colour. */
 export function Thumb({ image, emoji, color, size, radius = R.lg, style, emojiScale = 0.5 }: { image?: string | null; emoji: string; color: string; size?: number; radius?: number; style?: StyleProp<ViewStyle>; emojiScale?: number }) {
   const [failed, setFailed] = useState(false);
@@ -53,7 +67,7 @@ export function ProductTile({ p, width }: { p: ProductCard; width: number }) {
       </View>
       <View style={{ paddingHorizontal: 4, paddingTop: 10, gap: 3 }}>
         <Row gap={6} style={{ alignItems: 'baseline' }} wrap>
-          <Txt v="price">{t('from_price', { p: price(p.minPrice) })}</Txt>
+          <FromPrice value={p.minPrice} />
           {p.oldPrice && p.oldPrice > p.minPrice ? (
             <Txt v="small" style={{ textDecorationLine: 'line-through', color: C.faint }}>
               {price(p.oldPrice)}

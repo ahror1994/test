@@ -388,13 +388,14 @@ export function invoiceHtml(o: ReturnType<typeof getOrder> & {}, u: any) {
   const rows = o.subOrders
     .flatMap((s) => s.items.map((i) => `<tr><td>${i.title}</td><td>${s.supplier.name}</td><td>${i.qty}</td><td>${i.price}</td><td>${i.price * i.qty}</td></tr>`))
     .join('');
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Счёт ${o.number}</title>
-<style>body{font-family:system-ui;margin:40px;color:#0F1222}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ddd;padding:8px;text-align:left}h1{margin:0 0 8px}.muted{color:#6B7085}</style></head>
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Счёт ${o.number}</title>
+<style>body{font-family:system-ui;margin:40px;color:#0F1222}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ddd;padding:8px;text-align:left}h1{margin:0 0 8px}.muted{color:#6B7085}
+.scroll{overflow-x:auto}@media(max-width:600px){body{margin:16px;font-size:14px}h1{font-size:20px}td,th{padding:6px}}</style></head>
 <body><h1>Счёт на оплату № ${o.number}</h1><div class="muted">от ${new Date(o.createdAt).toLocaleDateString('ru-RU')}</div>
 <p><b>Поставщик:</b> ИП «Taptym» (маркетплейс), р/с в ОАО «MBank»<br><b>Покупатель:</b> ${u.company_name ?? u.name} ${u.company_inn ? '· ИНН ' + u.company_inn : ''}</p>
-<table><tr><th>Товар</th><th>Продавец</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr>${rows}
+<div class="scroll"><table><tr><th>Товар</th><th>Продавец</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr>${rows}
 <tr><td colspan="4">Доставка</td><td>${o.deliveryTotal}</td></tr><tr><td colspan="4">Скидка</td><td>-${o.promoDiscount + o.coinsUsed}</td></tr>
-<tr><th colspan="4">Итого к оплате, сом</th><th>${o.total}</th></tr></table>
+<tr><th colspan="4">Итого к оплате, сом</th><th>${o.total}</th></tr></table></div>
 <p class="muted">Без НДС. Демо-документ, реквизиты будут подставлены после регистрации.</p><script>window.print&&setTimeout(()=>window.print(),300)</script></body></html>`;
 }
 

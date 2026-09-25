@@ -6,7 +6,7 @@ import type { Order, PaymentMethod } from '@taptym/shared';
 import { AddressSheet } from '@/components/address-sheet';
 import { StoreAvatar } from '@/components/product';
 import { SummaryCard } from '@/components/summary';
-import { BottomBar, Button, Card, Empty, Field, Header, price, Row, Screen, Section, Skeleton, Txt, type IconName } from '@/components/ui';
+import { BottomBar, Button, Card, Empty, ErrorState, Field, Header, price, Row, Screen, Section, Skeleton, Txt, type IconName } from '@/components/ui';
 import { errorText, useT, type TKey } from '@/i18n';
 import { api } from '@/lib/api';
 import { haptic } from '@/lib/haptics';
@@ -20,7 +20,7 @@ export default function CheckoutScreen() {
   const token = useApp((s) => s.token);
   const addressId = useApp((s) => s.addressId);
   const promo = useApp((s) => s.promo);
-  const { quote: q } = useQuote();
+  const { quote: q, error: quoteError, refresh: refreshQuote } = useQuote();
   const [method, setMethod] = useState<PaymentMethod>('qr');
   const [comment, setComment] = useState('');
   const [sheet, setSheet] = useState(false);
@@ -187,7 +187,9 @@ export default function CheckoutScreen() {
         <Field value={comment} onChangeText={setComment} placeholder={t('comment_placeholder')} multiline maxLength={500} />
       </Section>
 
-      <View style={{ marginTop: 24 }}>{q ? <SummaryCard q={q} /> : <Skeleton h={220} r={R.xxl} />}</View>
+      <View style={{ marginTop: 24 }}>
+        {q ? <SummaryCard q={q} /> : quoteError ? <ErrorState error={quoteError} onRetry={refreshQuote} /> : <Skeleton h={220} r={R.xxl} />}
+      </View>
 
       <AddressSheet visible={sheet} onClose={() => setSheet(false)} />
     </Screen>
