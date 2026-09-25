@@ -8,6 +8,7 @@
     "start": "pnpm --filter api start",
     "demo": "pnpm build:web && pnpm start",
     "reset-db": "pnpm --filter api reset-db",
-    "typecheck": "pnpm -r --parallel typecheck"
+    "typecheck": "pnpm -r --parallel typecheck",
+    "test": "pnpm --filter @taptym/shared test && pnpm --filter api test"
   }
 }
